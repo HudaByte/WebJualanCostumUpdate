@@ -1,8 +1,41 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { Lock, Plus, Trash2, Edit2, Save, Layout, Package, Gift, Settings, Upload, Image as ImageIcon, Share2, Link as LinkIcon, Search } from 'lucide-react';
 import { getProducts, getFreebies, getSiteConfig, getSocialLinks, createProduct, updateProduct, deleteProduct, createFreebie, updateFreebie, deleteFreebie, createSocialLink, deleteSocialLink, saveSiteConfig, uploadImage } from '../services/dataService';
 import { Product, Freebie, SocialLink } from '../types';
+
+interface ConfigInputProps {
+  label: string;
+  confKey: string;
+  type?: string;
+  help?: string;
+  value: string;
+  onChange: (value: string) => void;
+}
+
+const ConfigInput: React.FC<ConfigInputProps> = React.memo(({ label, confKey, type = "text", help, value, onChange }) => (
+  <div className="mb-4">
+    <label className="block text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">{label}</label>
+    {type === 'textarea' ? (
+       <textarea 
+          className="w-full bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded p-2 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none" 
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          rows={5}
+       />
+    ) : (
+      <input 
+        type={type}
+        className="w-full bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded p-2 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none" 
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+      />
+    )}
+    {help && <p className="text-xs text-slate-400 mt-1">{help}</p>}
+  </div>
+));
+
+ConfigInput.displayName = 'ConfigInput';
 
 const Admin: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -74,11 +107,11 @@ const Admin: React.FC = () => {
       } else if (type === 'freebie' && editingFreebie) {
         setEditingFreebie({ ...editingFreebie, image_url: publicUrl });
       } else if (type === 'logo') {
-        setConfig({ ...config, brand_logo_url: publicUrl });
+        setConfig(prev => ({ ...prev, brand_logo_url: publicUrl }));
       } else if (type === 'og') {
-        setConfig({ ...config, seo_og_image: publicUrl });
+        setConfig(prev => ({ ...prev, seo_og_image: publicUrl }));
       } else if (type === 'hero') {
-        setConfig({ ...config, hero_image_url: publicUrl });
+        setConfig(prev => ({ ...prev, hero_image_url: publicUrl }));
       }
     } catch (error) {
       alert("Gagal mengupload gambar. Pastikan bucket 'images' ada di Supabase.");
@@ -174,28 +207,9 @@ const Admin: React.FC = () => {
       fetchData();
   };
 
-  // Helper component for Config Input
-  const ConfigInput = ({ label, confKey, type = "text", help }: { label: string, confKey: string, type?: string, help?: string }) => (
-    <div className="mb-4">
-      <label className="block text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">{label}</label>
-      {type === 'textarea' ? (
-         <textarea 
-            className="w-full bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded p-2 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none" 
-            value={config[confKey] || ''}
-            onChange={(e) => setConfig({...config, [confKey]: e.target.value})}
-            rows={5}
-         />
-      ) : (
-        <input 
-          type={type}
-          className="w-full bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded p-2 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none" 
-          value={config[confKey] || ''}
-          onChange={(e) => setConfig({...config, [confKey]: e.target.value})}
-        />
-      )}
-      {help && <p className="text-xs text-slate-400 mt-1">{help}</p>}
-    </div>
-  );
+  const handleConfigChange = useCallback((key: string, value: string) => {
+    setConfig(prev => ({ ...prev, [key]: value }));
+  }, []);
 
   // --- RENDER LOGIN ---
   if (!isAuthenticated) {
@@ -474,10 +488,10 @@ const Admin: React.FC = () => {
                 {/* Meta Information */}
                 <div className="bg-slate-50 dark:bg-slate-800 p-4 md:p-6 rounded-lg border border-slate-200 dark:border-slate-700">
                    <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-4 border-b pb-2 dark:border-slate-600 flex items-center gap-2"><Search size={18}/> Metadata Website</h3>
-                   <ConfigInput label="Judul Website (Title Tag)" confKey="seo_site_title" />
-                   <ConfigInput label="Deskripsi Website (Meta Description)" confKey="seo_description" type="textarea" help="Deskripsi yang muncul di hasil pencarian Google. Usahakan 150-160 karakter." />
-                   <ConfigInput label="Kata Kunci (Keywords)" confKey="seo_keywords" type="textarea" help="Pisahkan dengan koma. Contoh: jual template, aset digital, font murah" />
-                   <ConfigInput label="Penulis (Author)" confKey="seo_author" />
+                   <ConfigInput label="Judul Website (Title Tag)" confKey="seo_site_title" value={config['seo_site_title'] || ''} onChange={(v) => handleConfigChange('seo_site_title', v)} />
+                   <ConfigInput label="Deskripsi Website (Meta Description)" confKey="seo_description" type="textarea" help="Deskripsi yang muncul di hasil pencarian Google. Usahakan 150-160 karakter." value={config['seo_description'] || ''} onChange={(v) => handleConfigChange('seo_description', v)} />
+                   <ConfigInput label="Kata Kunci (Keywords)" confKey="seo_keywords" type="textarea" help="Pisahkan dengan koma. Contoh: jual template, aset digital, font murah" value={config['seo_keywords'] || ''} onChange={(v) => handleConfigChange('seo_keywords', v)} />
+                   <ConfigInput label="Penulis (Author)" confKey="seo_author" value={config['seo_author'] || ''} onChange={(v) => handleConfigChange('seo_author', v)} />
                 </div>
 
                 {/* Open Graph / Social Sharing */}
@@ -496,7 +510,7 @@ const Admin: React.FC = () => {
                              <input 
                                 className="w-full bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded p-2 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none" 
                                 value={config['seo_og_image'] || ''}
-                                onChange={(e) => setConfig({...config, seo_og_image: e.target.value})}
+                                onChange={(e) => handleConfigChange('seo_og_image', e.target.value)}
                                 placeholder="URL Gambar"
                              />
                              <label className="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded flex items-center gap-2 whitespace-nowrap">
@@ -514,9 +528,9 @@ const Admin: React.FC = () => {
                 {/* Search Engine Verification */}
                 <div className="bg-slate-50 dark:bg-slate-800 p-4 md:p-6 rounded-lg border border-slate-200 dark:border-slate-700">
                    <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-4 border-b pb-2 dark:border-slate-600 flex items-center gap-2"><Lock size={18}/> Verifikasi Search Engine</h3>
-                   <ConfigInput label="Google Search Console (Meta Tag Code)" confKey="seo_google_verification" help="Masukkan kode verifikasi HTML dari Google Search Console." />
-                   <ConfigInput label="Bing Webmaster Tools" confKey="seo_bing_verification" />
-                   <ConfigInput label="Yandex Webmaster" confKey="seo_yandex_verification" />
+                   <ConfigInput label="Google Search Console (Meta Tag Code)" confKey="seo_google_verification" help="Masukkan kode verifikasi HTML dari Google Search Console." value={config['seo_google_verification'] || ''} onChange={(v) => handleConfigChange('seo_google_verification', v)} />
+                   <ConfigInput label="Bing Webmaster Tools" confKey="seo_bing_verification" value={config['seo_bing_verification'] || ''} onChange={(v) => handleConfigChange('seo_bing_verification', v)} />
+                   <ConfigInput label="Yandex Webmaster" confKey="seo_yandex_verification" value={config['seo_yandex_verification'] || ''} onChange={(v) => handleConfigChange('seo_yandex_verification', v)} />
                 </div>
 
                 <button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-lg flex items-center justify-center gap-2 transition-colors sticky bottom-4 shadow-xl">
@@ -535,7 +549,7 @@ const Admin: React.FC = () => {
                 {/* GENERAL */}
                 <div className="bg-slate-50 dark:bg-slate-800 p-4 md:p-6 rounded-lg border border-slate-200 dark:border-slate-700">
                    <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-4 border-b pb-2 dark:border-slate-600">Umum</h3>
-                   <ConfigInput label="Nama Brand (Navbar)" confKey="brand_name" />
+                   <ConfigInput label="Nama Brand (Navbar)" confKey="brand_name" value={config['brand_name'] || ''} onChange={(v) => handleConfigChange('brand_name', v)} />
                    
                    {/* Logo Upload */}
                    <div className="mb-4">
@@ -551,7 +565,7 @@ const Admin: React.FC = () => {
                              <input 
                                 className="w-full bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded p-2 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none" 
                                 value={config['brand_logo_url'] || ''}
-                                onChange={(e) => setConfig({...config, brand_logo_url: e.target.value})}
+                                onChange={(e) => handleConfigChange('brand_logo_url', e.target.value)}
                                 placeholder="URL Logo"
                              />
                              <label className="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded flex items-center gap-2 whitespace-nowrap">
@@ -568,7 +582,7 @@ const Admin: React.FC = () => {
                    {/* Product Detail Badge */}
                    <div className="mt-8 border-t dark:border-slate-600 pt-6">
                         <h4 className="text-base font-bold text-slate-800 dark:text-white mb-4">Halaman Detail Produk</h4>
-                        <ConfigInput label="Teks Badge Produk (Contoh: Premium Asset)" confKey="product_badge_text" help="Badge yang muncul di atas judul produk di halaman detail. Kosongkan untuk menyembunyikan badge." />
+                        <ConfigInput label="Teks Badge Produk (Contoh: Premium Asset)" confKey="product_badge_text" help="Badge yang muncul di atas judul produk di halaman detail. Kosongkan untuk menyembunyikan badge." value={config['product_badge_text'] || ''} onChange={(v) => handleConfigChange('product_badge_text', v)} />
                    </div>
                    
                    {/* Detail Page Features (NEW) */}
@@ -576,12 +590,12 @@ const Admin: React.FC = () => {
                         <h4 className="text-base font-bold text-slate-800 dark:text-white mb-4">Fitur Halaman Detail Produk</h4>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                                <ConfigInput label="Judul Fitur 1 (Icon Shield)" confKey="detail_feature_1_title" />
-                                <ConfigInput label="Deskripsi Fitur 1" confKey="detail_feature_1_desc" />
+                                <ConfigInput label="Judul Fitur 1 (Icon Shield)" confKey="detail_feature_1_title" value={config['detail_feature_1_title'] || ''} onChange={(v) => handleConfigChange('detail_feature_1_title', v)} />
+                                <ConfigInput label="Deskripsi Fitur 1" confKey="detail_feature_1_desc" value={config['detail_feature_1_desc'] || ''} onChange={(v) => handleConfigChange('detail_feature_1_desc', v)} />
                             </div>
                             <div>
-                                <ConfigInput label="Judul Fitur 2 (Icon Petir)" confKey="detail_feature_2_title" />
-                                <ConfigInput label="Deskripsi Fitur 2" confKey="detail_feature_2_desc" />
+                                <ConfigInput label="Judul Fitur 2 (Icon Petir)" confKey="detail_feature_2_title" value={config['detail_feature_2_title'] || ''} onChange={(v) => handleConfigChange('detail_feature_2_title', v)} />
+                                <ConfigInput label="Deskripsi Fitur 2" confKey="detail_feature_2_desc" value={config['detail_feature_2_desc'] || ''} onChange={(v) => handleConfigChange('detail_feature_2_desc', v)} />
                             </div>
                         </div>
                    </div>
@@ -596,7 +610,7 @@ const Admin: React.FC = () => {
                                 type="checkbox" 
                                 className="sr-only peer" 
                                 checked={config['fake_purchase_enabled'] !== 'false'}
-                                onChange={(e) => setConfig({...config, fake_purchase_enabled: e.target.checked ? 'true' : 'false'})}
+                                onChange={(e) => handleConfigChange('fake_purchase_enabled', e.target.checked ? 'true' : 'false')}
                               />
                               <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
                               <span className="ml-3 text-sm font-medium text-slate-900 dark:text-slate-300">Aktifkan Notifikasi</span>
@@ -607,14 +621,18 @@ const Admin: React.FC = () => {
                           label="Jeda Antar Notifikasi (Detik)" 
                           confKey="fake_purchase_delay" 
                           type="number"
-                          help="Berapa detik jeda antara notifikasi satu dengan yang lainnya." 
+                          help="Berapa detik jeda antara notifikasi satu dengan yang lainnya."
+                          value={config['fake_purchase_delay'] || ''}
+                          onChange={(v) => handleConfigChange('fake_purchase_delay', v)}
                        />
 
                        <ConfigInput 
                           label="Daftar Nama Pembeli Palsu" 
                           confKey="fake_purchase_names" 
                           type="textarea" 
-                          help="Nama-nama ini akan muncul di notifikasi pojok kiri bawah secara acak. Pisahkan dengan enter (baris baru)." 
+                          help="Nama-nama ini akan muncul di notifikasi pojok kiri bawah secara acak. Pisahkan dengan enter (baris baru)."
+                          value={config['fake_purchase_names'] || ''}
+                          onChange={(v) => handleConfigChange('fake_purchase_names', v)}
                        />
                    </div>
                 </div>
@@ -622,12 +640,12 @@ const Admin: React.FC = () => {
                 {/* HERO SECTION */}
                 <div className="bg-slate-50 dark:bg-slate-800 p-4 md:p-6 rounded-lg border border-slate-200 dark:border-slate-700">
                    <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-4 border-b pb-2 dark:border-slate-600">Bagian Hero (Atas)</h3>
-                   <ConfigInput label="Teks Badge Kecil (Atas Judul)" confKey="hero_badge_text" help="Contoh: Digital Products & Assets" />
-                   <ConfigInput label="Judul Utama" confKey="hero_title" help="Gunakan tanda kutip dua (&quot;) untuk efek gradient." />
-                   <ConfigInput label="Sub-judul" confKey="hero_subtitle" type="textarea" />
+                   <ConfigInput label="Teks Badge Kecil (Atas Judul)" confKey="hero_badge_text" help="Contoh: Digital Products & Assets" value={config['hero_badge_text'] || ''} onChange={(v) => handleConfigChange('hero_badge_text', v)} />
+                   <ConfigInput label="Judul Utama" confKey="hero_title" help="Gunakan tanda kutip dua (&quot;) untuk efek gradient." value={config['hero_title'] || ''} onChange={(v) => handleConfigChange('hero_title', v)} />
+                   <ConfigInput label="Sub-judul" confKey="hero_subtitle" type="textarea" value={config['hero_subtitle'] || ''} onChange={(v) => handleConfigChange('hero_subtitle', v)} />
                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                     <ConfigInput label="Teks Tombol Utama" confKey="hero_btn_primary" />
-                     <ConfigInput label="Teks Tombol Kedua" confKey="hero_btn_secondary" />
+                     <ConfigInput label="Teks Tombol Utama" confKey="hero_btn_primary" value={config['hero_btn_primary'] || ''} onChange={(v) => handleConfigChange('hero_btn_primary', v)} />
+                     <ConfigInput label="Teks Tombol Kedua" confKey="hero_btn_secondary" value={config['hero_btn_secondary'] || ''} onChange={(v) => handleConfigChange('hero_btn_secondary', v)} />
                    </div>
                    {/* HERO IMAGE UPLOAD */}
                    <div className="mt-4">
@@ -643,7 +661,7 @@ const Admin: React.FC = () => {
                              <input 
                                 className="w-full bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded p-2 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none" 
                                 value={config['hero_image_url'] || ''}
-                                onChange={(e) => setConfig({...config, hero_image_url: e.target.value})}
+                                onChange={(e) => handleConfigChange('hero_image_url', e.target.value)}
                                 placeholder="URL Gambar"
                              />
                              <label className="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded flex items-center gap-2 whitespace-nowrap">
@@ -661,31 +679,31 @@ const Admin: React.FC = () => {
                 {/* PRODUCTS SECTION */}
                 <div className="bg-slate-50 dark:bg-slate-800 p-4 md:p-6 rounded-lg border border-slate-200 dark:border-slate-700">
                    <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-4 border-b pb-2 dark:border-slate-600">Bagian Produk</h3>
-                   <ConfigInput label="Judul Section" confKey="products_title" help="Gunakan tanda kutip dua (&quot;) untuk warna biru." />
-                   <ConfigInput label="Sub-judul Section" confKey="products_subtitle" />
+                   <ConfigInput label="Judul Section" confKey="products_title" help="Gunakan tanda kutip dua (&quot;) untuk warna biru." value={config['products_title'] || ''} onChange={(v) => handleConfigChange('products_title', v)} />
+                   <ConfigInput label="Sub-judul Section" confKey="products_subtitle" value={config['products_subtitle'] || ''} onChange={(v) => handleConfigChange('products_subtitle', v)} />
                 </div>
 
                 {/* FREEBIES SECTION */}
                 <div className="bg-slate-50 dark:bg-slate-800 p-4 md:p-6 rounded-lg border border-slate-200 dark:border-slate-700">
                    <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-4 border-b pb-2 dark:border-slate-600">Bagian Gratisan</h3>
-                   <ConfigInput label="Teks Badge Kecil" confKey="freebies_badge_text" help="Contoh: Free Resources" />
-                   <ConfigInput label="Judul Section" confKey="freebies_title" help="Gunakan tanda kutip dua (&quot;) untuk efek gradient." />
-                   <ConfigInput label="Sub-judul Section" confKey="freebies_subtitle" />
+                   <ConfigInput label="Teks Badge Kecil" confKey="freebies_badge_text" help="Contoh: Free Resources" value={config['freebies_badge_text'] || ''} onChange={(v) => handleConfigChange('freebies_badge_text', v)} />
+                   <ConfigInput label="Judul Section" confKey="freebies_title" help="Gunakan tanda kutip dua (&quot;) untuk efek gradient." value={config['freebies_title'] || ''} onChange={(v) => handleConfigChange('freebies_title', v)} />
+                   <ConfigInput label="Sub-judul Section" confKey="freebies_subtitle" value={config['freebies_subtitle'] || ''} onChange={(v) => handleConfigChange('freebies_subtitle', v)} />
                 </div>
 
                 {/* WHATSAPP SECTION */}
                 <div className="bg-slate-50 dark:bg-slate-800 p-4 md:p-6 rounded-lg border border-slate-200 dark:border-slate-700">
                    <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-4 border-b pb-2 dark:border-slate-600">Bagian WhatsApp</h3>
-                   <ConfigInput label="Judul" confKey="wa_section_title" help="Gunakan tanda kutip dua (&quot;) untuk warna cyan." />
-                   <ConfigInput label="Deskripsi" confKey="wa_section_desc" type="textarea" />
-                   <ConfigInput label="Link WhatsApp" confKey="wa_link" />
-                   <ConfigInput label="Teks Tombol" confKey="wa_btn_text" />
+                   <ConfigInput label="Judul" confKey="wa_section_title" help="Gunakan tanda kutip dua (&quot;) untuk warna cyan." value={config['wa_section_title'] || ''} onChange={(v) => handleConfigChange('wa_section_title', v)} />
+                   <ConfigInput label="Deskripsi" confKey="wa_section_desc" type="textarea" value={config['wa_section_desc'] || ''} onChange={(v) => handleConfigChange('wa_section_desc', v)} />
+                   <ConfigInput label="Link WhatsApp" confKey="wa_link" value={config['wa_link'] || ''} onChange={(v) => handleConfigChange('wa_link', v)} />
+                   <ConfigInput label="Teks Tombol" confKey="wa_btn_text" value={config['wa_btn_text'] || ''} onChange={(v) => handleConfigChange('wa_btn_text', v)} />
                 </div>
 
                 {/* FOOTER */}
                 <div className="bg-slate-50 dark:bg-slate-800 p-4 md:p-6 rounded-lg border border-slate-200 dark:border-slate-700">
                    <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-4 border-b pb-2 dark:border-slate-600">Footer</h3>
-                   <ConfigInput label="Teks Hak Cipta" confKey="footer_text" />
+                   <ConfigInput label="Teks Hak Cipta" confKey="footer_text" value={config['footer_text'] || ''} onChange={(v) => handleConfigChange('footer_text', v)} />
                 </div>
 
                 <button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-lg flex items-center justify-center gap-2 transition-colors sticky bottom-4 shadow-xl">
