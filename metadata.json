@@ -1,0 +1,5 @@
+{
+  "name": "NeonMarket",
+  "description": "A modern, dark-themed single page e-commerce site with neon aesthetics, connected to Supabase.",
+  "requestFramePermissions": []
+}

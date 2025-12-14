@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="id" class="scroll-smooth">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0f172a" />
+    <meta name="description" content="">
+    <title></title>
+    
+    <!-- Dynamic Meta Tags from Database -->
+    <script>
+      (function() {
+        window.__LOAD_META_CONFIG__ = function(supabaseUrl, supabaseKey) {
+          if (!supabaseUrl || !supabaseKey || supabaseUrl.includes('placeholder') || supabaseUrl.includes('your-project')) {
+            return;
+          }
+          
+          fetch(supabaseUrl + '/rest/v1/site_config?select=key,value', {
+            headers: {
+              'apikey': supabaseKey,
+              'Authorization': 'Bearer ' + supabaseKey
+            }
+          })
+          .then(function(res) { return res.json(); })
+          .then(function(data) {
+            if (data && Array.isArray(data)) {
+              var config = {};
+              data.forEach(function(item) {
+                config[item.key] = item.value;
+              });
+              
+              var title = config['seo_site_title'] || config['brand_name'] || '';
+              var description = config['seo_description'] || '';
+              
+              if (title) {
+                document.title = title;
+                var titleTag = document.querySelector('title');
+                if (titleTag) titleTag.textContent = title;
+              }
+              
+              if (description) {
+                var metaDesc = document.querySelector('meta[name="description"]');
+                if (!metaDesc) {
+                  metaDesc = document.createElement('meta');
+                  metaDesc.setAttribute('name', 'description');
+                  document.head.appendChild(metaDesc);
+                }
+                metaDesc.setAttribute('content', description);
+              }
+            }
+          })
+          .catch(function(err) {
+            console.warn('Failed to load site config for meta tags:', err);
+          });
+        };
+      })();
+    </script>
+    
+    <!-- Preconnect to critical domains for faster connection -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://picsum.photos">
+    <link rel="dns-prefetch" href="https://cdn.tailwindcss.com">
+    <link rel="dns-prefetch" href="https://aistudiocdn.com">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- ADDED: &display=swap to prevent invisible text -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['Outfit', 'sans-serif'],
+            },
+            colors: {
+              brand: {
+                blue: '#2563eb',
+                cyan: '#06b6d4',
+                dark: '#0f172a',
+                light: '#f8fafc',
+              }
+            },
+            animation: {
+              'pulse-slow': 'pulse 8s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+              'float': 'float 6s ease-in-out infinite',
+            },
+            keyframes: {
+              float: {
+                '0%, 100%': { transform: 'translate3d(0, 0, 0)' },
+                '50%': { transform: 'translate3d(0, -20px, 0)' },
+              }
+            }
+          },
+        },
+      }
+    </script>
+    <style>
+      html {
+        scroll-behavior: smooth;
+        scroll-padding-top: 5rem;
+        -webkit-tap-highlight-color: transparent;
+      }
+      body {
+        @apply transition-colors duration-300;
+        text-rendering: optimizeLegibility;
+      }
+      /* Hardware Acceleration Class */
+      .gpu-accel {
+        transform: translate3d(0,0,0);
+        will-change: transform;
+      }
+      /* Custom Scrollbar */
+      ::-webkit-scrollbar {
+        width: 10px;
+      }
+      ::-webkit-scrollbar-track {
+        @apply bg-slate-100 dark:bg-slate-900;
+      }
+      ::-webkit-scrollbar-thumb {
+        @apply bg-slate-300 dark:bg-slate-700;
+        border-radius: 5px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: #3b82f6;
+      }
+      
+      /* 
+         Performance Optimization for Scrolling:
+         content-visibility allows the browser to skip rendering work for off-screen content.
+         contain-intrinsic-size is REQUIRED to prevent scrollbar jumping/layout shift.
+      */
+      .content-visibility-auto {
+        content-visibility: auto;
+        contain-intrinsic-size: 1px 800px; /* Estimated section height */
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react": "https://aistudiocdn.com/react@^19.2.1",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.1/",
+    "react/": "https://aistudiocdn.com/react@^19.2.1/",
+    "@supabase/supabase-js": "https://aistudiocdn.com/@supabase/supabase-js@^2.87.1",
+    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.556.0",
+    "framer-motion": "https://aistudiocdn.com/framer-motion@^12.23.25",
+    "react-router-dom": "https://aistudiocdn.com/react-router-dom@6.22.3",
+    "react-helmet-async": "https://esm.sh/react-helmet-async@2.0.4?external=react,react-dom"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+  <body class="bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 antialiased overflow-x-hidden">
+    <div id="root"></div>
+  <script type="module" src="/index.tsx"></script>
+</body>
+</html>
