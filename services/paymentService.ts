@@ -134,65 +134,88 @@ export const createTransaction = async (
     let atlanticId = '';
     let fee = 0;
     let reservedStockId: number | null = null; // Track reserved stock
+    let expiredAt: string | null = null;
+    let uniqueCode = 0; // Initialize uniqueCode
 
-    // 1. If Automatic, Call Gateway
-    if (method === 'ATLANTIC_QRIS') {
-        try {
-            // STEP 1: Reserve stock IMMEDIATELY to prevent overbooking
-            const { data: availableStock } = await supabase
-                .from('product_stocks')
-                .select('*')
-                .eq('product_id', productId)
-                .eq('is_claimed', false)
-                .limit(1)
-                .single();
+    // --- STEP 1: RESERVE STOCK (FOR BOTH MANUAL & QRIS) ---
+    // Prevent overselling by claiming stock immediately for ALL orders
+    try {
+        const { data: availableStock } = await supabase
+            .from('product_stocks')
+            .select('*')
+            .eq('product_id', productId)
+            .eq('is_claimed', false)
+            .limit(1)
+            .single();
 
-            if (!availableStock) {
-                alert('Maaf, stok habis!');
-                return null;
-            }
+        if (!availableStock) {
+            alert('Maaf, stok barang ini sedang habis!');
+            return null;
+        }
 
-            reservedStockId = availableStock.id; // Capture ID
+        reservedStockId = availableStock.id;
 
-            // Claim the stock NOW before creating transaction
-            const { error: claimError } = await supabase
-                .from('product_stocks')
-                .update({ is_claimed: true })
-                .eq('id', availableStock.id);
+        // Claim the stock
+        const { error: claimError } = await supabase
+            .from('product_stocks')
+            .update({ is_claimed: true })
+            .eq('id', availableStock.id);
 
-            if (claimError) {
-                console.error('[Stock Reserve] Failed:', claimError);
-                alert('Gagal mereservasi stok. Silakan coba lagi.');
-                return null;
-            }
+        if (claimError) {
+            console.error('[Stock Reserve] Failed:', claimError);
+            alert('Gagal memproses stok. Silakan coba lagi.');
+            return null;
+        }
 
-            console.log('[Stock Reserve] Stock claimed:', availableStock.id);
+        console.log('[Stock Reserve] Reserved:', reservedStockId);
+    } catch (err) {
+        console.error('[Stock Reserve] Error:', err);
+        return null;
+    }
 
-            // STEP 2: Fetch API Key
+    try {
+        // --- STEP 2: PROCESS PAYMENT ---
+        if (method === 'ATLANTIC_QRIS') {
+            // Fetch API Key
             const { data: config } = await supabase.from('payment_config').select('value').eq('key', 'atlantic_api_key').single();
             const apiKey = config?.value;
 
             if (!apiKey) {
-                // Rollback stock if no API key
-                await supabase.from('product_stocks').update({ is_claimed: false }).eq('id', availableStock.id);
+                // Rollback
+                await supabase.from('product_stocks').update({ is_claimed: false }).eq('id', reservedStockId);
                 alert("API Key Atlantic belum disetting!");
                 return null;
             }
 
-            // Generate unique code (1-100 for smaller variation)
-            const uniqueCode = Math.floor(Math.random() * 100) + 1;
+            // Generate unique code
+            // Generate unique code
+            uniqueCode = Math.floor(Math.random() * 150) + 1; // 1 - 150
 
-            // Calculate: nominal + 200 + 0.7% + unique_code
-            const fee200 = 200;
-            const fee07Percent = Math.round(price * 0.007); // 0.7%
-            const nominalWithFees = price + fee200 + fee07Percent + uniqueCode;
+            // Calculate Nominal so that Net Received >= Price
+            // Formula: Net = Total - (200 + 0.7% * Total)
+            // We want Net = Price
+            // Price = Total * (1 - 0.007) - 200
+            // Total = (Price + 200) / 0.993
+            const flatFee = 200;
+            const percentFee = 0.007; // 0.7%
+
+            // Base amount needed to cover price + fees
+            const amountNeeded = Math.ceil((price + flatFee) / (1 - percentFee));
+
+            // Total to request from Atlantic
+            const nominalWithFees = amountNeeded + uniqueCode;
+
+            // Calculate the "Admin Fee" to show user (Total - Price - UniqueCode)
+            const calculatedFee = amountNeeded - price;
 
             console.log('[Payment] Calculation:', {
-                originalPrice: price,
-                fee200: fee200,
-                fee07Percent: fee07Percent,
-                uniqueCode: uniqueCode,
-                totalNominal: nominalWithFees
+                price,
+                flatFee,
+                percentFee,
+                amountNeeded,
+                uniqueCode,
+                nominalWithFees,
+                calculatedFee
             });
 
             const atlanticRes = await createAtlanticTransaction(nominalWithFees, refId, apiKey);
@@ -200,79 +223,63 @@ export const createTransaction = async (
             if (atlanticRes.status && atlanticRes.data) {
                 paymentUrl = atlanticRes.data.qr_image || '';
                 atlanticId = atlanticRes.data.id;
-                fee = atlanticRes.data.fee || 0;
+                expiredAt = atlanticRes.data.expired_at || null;
 
-                // Update price to use get_balance from Atlantic
-                const getBalance = atlanticRes.data.get_balance || price;
+                // Store the FEE charged to user (calculatedFee) so UI math works: Price + Fee + Unique = Total
+                fee = calculatedFee;
 
-                // Insert with get_balance and unique_code
-                const { data, error } = await supabase
-                    .from('transactions')
-                    .insert({
-                        ref_id: refId,
-                        product_id: productId,
-                        product_title: productTitle,
-                        price: price, // Original price
-                        get_balance: getBalance, // What merchant receives
-                        fee: fee,
-                        unique_code: uniqueCode, // Random unique number
-                        atlantic_id: atlanticId,
-                        buyer_email: email,
-                        payment_method: method,
-                        status: status,
-                        payment_url: paymentUrl
-                    })
-                    .select()
-                    .single();
-
-                if (error) {
-                    console.error("DB Error", error);
-                    return null;
-                }
-
-                return data;
+                // Use get_balance as the net amount
+                // But for DB, we usually store the sell price user sees, getting balance is handled in accounting
+                // Here we keep logic simple
             } else {
-                // Rollback stock if Atlantic API failed
-                await supabase.from('product_stocks').update({ is_claimed: false }).eq('id', availableStock.id);
+                // Rollback
+                await supabase.from('product_stocks').update({ is_claimed: false }).eq('id', reservedStockId);
                 throw new Error(atlanticRes.message || "Gagal membuat transaksi Atlantic");
             }
-        } catch (e) {
-            console.error("Payment Gateway Error", e);
-            alert("Gagal koneksi ke Payment Gateway");
-            // Note: stock already rolled back in else block above if needed
-            return null;
+        } else {
+            // Manual
+            paymentUrl = `https://wa.me/6281234567890?text=Halo%20Admin%2C%20saya%20ingin%20konfirmasi%20pembelian%20${encodeURIComponent(productTitle)}%20seharga%20Rp%20${price.toLocaleString()}%20dengan%20ID%20${refId}`;
         }
-    } else {
-        // Manual
-        paymentUrl = `https://wa.me/6281234567890?text=Halo%20Admin%2C%20saya%20ingin%20konfirmasi%20pembelian%20${encodeURIComponent(productTitle)}%20seharga%20Rp%20${price.toLocaleString()}%20dengan%20ID%20${refId}`;
+
+        // --- STEP 3: SAVE TRANSACTION ---
+        const { data, error } = await supabase
+            .from('transactions')
+            .insert({
+                ref_id: refId,
+                product_id: productId,
+                product_title: productTitle,
+                price: price,
+                fee: fee,
+                unique_code: method === 'ATLANTIC_QRIS' ? uniqueCode : 0, // Save Unique Code!
+                atlantic_id: atlanticId,
+                buyer_email: email,
+                buyer_phone: phone,
+                payment_method: method,
+                reserved_stock_id: reservedStockId, // IMPORTANT: Save this for cancellation
+                status: status,
+                payment_url: paymentUrl,
+                expired_at: expiredAt // Save Expiration Time
+            })
+            .select()
+            .single();
+
+        if (error) {
+            // Rollback if DB insert fails
+            await supabase.from('product_stocks').update({ is_claimed: false }).eq('id', reservedStockId);
+            console.error("DB Error", error);
+            throw error;
+        }
+
+        return data;
+
+    } catch (e) {
+        // Rollback stock in case of any other error
+        if (reservedStockId) {
+            await supabase.from('product_stocks').update({ is_claimed: false }).eq('id', reservedStockId);
+        }
+        console.error("Transaction Error", e);
+        return null;
     }
-
-    // 2. Insert into DB
-    const { data, error } = await supabase
-        .from('transactions')
-        .insert({
-            ref_id: refId,
-            product_id: productId,
-            product_title: productTitle,
-            price: price,
-            fee: fee, // Ensure DB has this column
-            atlantic_id: atlanticId, // Ensure DB has this column
-            buyer_email: email,
-            buyer_phone: phone,
-            payment_method: method,
-            reserved_stock_id: reservedStockId,
-            status: status,
-            payment_url: paymentUrl
-        })
-        .select()
-        .single();
-
-    if (error) {
-        console.error("DB Error", error);
-        throw error;
-    }
-
-    return data;
 };
 
 // Check Status (with optional Atlantic sync)
@@ -318,6 +325,15 @@ export const checkTransactionStatus = async (transactionId: string): Promise<Tra
                         await deliverStock(transactionId);
                     } else if (atlanticStatus === 'cancel' || atlanticStatus === 'expired') {
                         newStatus = 'CANCELLED';
+
+                        // RESTORE STOCK if cancelled/expired
+                        if (trx.reserved_stock_id) {
+                            console.log('[Check Status] Transaction cancelled/expired. Releasing stock:', trx.reserved_stock_id);
+                            await supabase
+                                .from('product_stocks')
+                                .update({ is_claimed: false })
+                                .eq('id', trx.reserved_stock_id);
+                        }
                     }
 
                     if (newStatus !== 'PENDING' && newStatus !== trx.status) {

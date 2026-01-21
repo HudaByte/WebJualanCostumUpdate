@@ -71,6 +71,7 @@ export interface Transaction {
   invoice_url?: string; // Generated after payment success
   stock_content?: string; // Delivered content
   reserved_stock_id?: number; // Stock ID reserved for this transaction
+  expired_at?: string; // Expiration time from Payment Gateway
 }
 
 export interface PaymentConfig {

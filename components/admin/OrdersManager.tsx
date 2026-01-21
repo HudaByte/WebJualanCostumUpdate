@@ -1,0 +1,177 @@
+import React, { useState } from 'react';
+import { Transaction } from '../../types';
+import { Copy, CheckCircle, XCircle, Loader } from 'lucide-react';
+import { manualApproveTransaction, adminCancelTransaction } from '../../services/paymentService';
+
+interface OrdersManagerProps {
+    transactions: Transaction[];
+    fetchData: () => void;
+}
+
+const OrdersManager: React.FC<OrdersManagerProps> = ({ transactions, fetchData }) => {
+    const [loadingAction, setLoadingAction] = useState(false);
+
+    const copyToClipboard = (text: string) => {
+        navigator.clipboard.writeText(text);
+        alert('Disalin!');
+    };
+
+    const handleManualApprove = async (transactionId: string) => {
+        if (!confirm('Yakin setujui manual? Stok akan dikirim ke user.')) return;
+        setLoadingAction(true);
+        const success = await manualApproveTransaction(transactionId);
+        if (success) {
+            alert('Transaksi disetujui!');
+            fetchData();
+        } else {
+            alert('Gagal menyetujui transaksi.');
+        }
+        setLoadingAction(false);
+    };
+
+    const handleCancelTransaction = async (transactionId: string) => {
+        if (!confirm('Yakin batalkan transaksi ini? Stok akan dikembalikan.')) return;
+        setLoadingAction(true);
+        const success = await adminCancelTransaction(transactionId);
+        if (success) {
+            alert('Transaksi dibatalkan!');
+            fetchData();
+        } else {
+            alert('Gagal membatalkan transaksi.');
+        }
+        setLoadingAction(false);
+    };
+
+    return (
+        <div>
+            <h2 className="text-xl font-bold mb-6 text-slate-800 dark:text-white">Daftar Pesanan</h2>
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg overflow-hidden shadow-sm">
+
+                {/* Desktop Table View */}
+                <div className="hidden md:block overflow-x-auto">
+                    <table className="w-full text-sm text-left">
+                        <thead className="bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-bold border-b border-slate-200 dark:border-slate-700">
+                            <tr>
+                                <th className="p-4">Ref ID</th>
+                                <th className="p-4">Tanggal</th>
+                                <th className="p-4">Produk</th>
+                                <th className="p-4">Pembeli</th>
+                                <th className="p-4">Harga</th>
+                                <th className="p-4">Metode</th>
+                                <th className="p-4">Status</th>
+                                <th className="p-4 text-center">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                            {transactions.map(t => (
+                                <tr key={t.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                                    <td className="p-4 font-mono text-xs">{t.ref_id}</td>
+                                    <td className="p-4 text-xs text-slate-500">{new Date(t.created_at || '').toLocaleDateString()} {new Date(t.created_at || '').toLocaleTimeString()}</td>
+                                    <td className="p-4 font-medium max-w-[200px] truncate" title={t.product_title}>{t.product_title}</td>
+                                    <td className="p-4 text-xs">
+                                        <div>{t.buyer_email}</div>
+                                        <div className="text-slate-500">{t.buyer_phone}</div>
+                                    </td>
+                                    <td className="p-4 font-medium">Rp {t.price.toLocaleString()}</td>
+                                    <td className="p-4 text-xs uppercase">{t.payment_method === 'ATLANTIC_QRIS' ? 'QRIS Auto' : 'Manual'}</td>
+                                    <td className="p-4">
+                                        <span className={`px-2 py-1 rounded text-xs font-bold inline-flex items-center gap-1 ${t.status === 'PAID' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
+                                            t.status === 'CANCELLED' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
+                                                'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
+                                            }`}>
+                                            {t.status === 'PAID' ? <CheckCircle size={12} /> : t.status === 'CANCELLED' ? <XCircle size={12} /> : <Loader size={12} className="animate-spin" />}
+                                            {t.status}
+                                        </span>
+                                    </td>
+                                    <td className="p-4">
+                                        <div className="flex justify-center gap-2">
+                                            <button onClick={() => copyToClipboard(`${t.ref_id} - ${t.product_title}`)} className="p-1.5 text-slate-500 hover:text-blue-500 border rounded" title="Copy Info"><Copy size={16} /></button>
+
+                                            {t.status === 'PENDING' && (
+                                                <>
+                                                    <button
+                                                        onClick={() => handleManualApprove(t.id)}
+                                                        disabled={loadingAction}
+                                                        className="p-1.5 text-green-600 hover:bg-green-50 border border-green-200 rounded disabled:opacity-50"
+                                                        title="Approve Manual"
+                                                    >
+                                                        <CheckCircle size={16} />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleCancelTransaction(t.id)}
+                                                        disabled={loadingAction}
+                                                        className="p-1.5 text-red-600 hover:bg-red-50 border border-red-200 rounded disabled:opacity-50"
+                                                        title="Batalkan"
+                                                    >
+                                                        <XCircle size={16} />
+                                                    </button>
+                                                </>
+                                            )}
+                                        </div>
+                                    </td>
+                                </tr>
+                            ))}
+                            {transactions.length === 0 && (
+                                <tr>
+                                    <td colSpan={8} className="p-8 text-center text-slate-500">Belum ada pesanan.</td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+
+                {/* Mobile Card View */}
+                <div className="md:hidden space-y-4 p-4 bg-slate-50 dark:bg-slate-900/50">
+                    {transactions.map(t => (
+                        <div key={t.id} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-lg shadow-sm flex flex-col gap-3">
+                            <div className="flex justify-between items-start">
+                                <div>
+                                    <span className="text-xs font-mono text-slate-500 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded">{t.ref_id}</span>
+                                    <p className="text-xs text-slate-400 mt-1">{new Date(t.created_at || '').toLocaleString()}</p>
+                                </div>
+                                <span className={`px-2 py-1 rounded text-xs font-bold inline-flex items-center gap-1 ${t.status === 'PAID' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
+                                    t.status === 'CANCELLED' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
+                                        'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
+                                    }`}>
+                                    {t.status}
+                                </span>
+                            </div>
+
+                            <div>
+                                <h4 className="font-bold text-slate-800 dark:text-white text-sm line-clamp-2">{t.product_title}</h4>
+                                <p className="text-blue-600 dark:text-blue-400 font-bold mt-1">Rp {t.price.toLocaleString()}</p>
+                            </div>
+
+                            <div className="text-xs text-slate-500 dark:text-slate-400">
+                                <p><span className="font-semibold">Pembeli:</span> {t.buyer_email}</p>
+                                <p><span className="font-semibold">Phone:</span> {t.buyer_phone}</p>
+                                <p><span className="font-semibold">Metode:</span> {t.payment_method === 'ATLANTIC_QRIS' ? 'QRIS Auto' : 'Manual'}</p>
+                            </div>
+
+                            <div className="flex gap-2 pt-2 border-t border-slate-100 dark:border-slate-800 mt-1">
+                                <button onClick={() => copyToClipboard(`${t.ref_id} - ${t.product_title}`)} className="flex-1 py-2 text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded text-xs font-medium flex items-center justify-center gap-1">
+                                    <Copy size={14} /> Salin
+                                </button>
+                                {t.status === 'PENDING' && (
+                                    <>
+                                        <button onClick={() => handleManualApprove(t.id)} disabled={loadingAction} className="flex-1 py-2 bg-green-50 text-green-600 border border-green-200 rounded text-xs font-medium flex items-center justify-center gap-1">
+                                            <CheckCircle size={14} /> Approve
+                                        </button>
+                                        <button onClick={() => handleCancelTransaction(t.id)} disabled={loadingAction} className="flex-1 py-2 bg-red-50 text-red-600 border border-red-200 rounded text-xs font-medium flex items-center justify-center gap-1">
+                                            <XCircle size={14} /> Batal
+                                        </button>
+                                    </>
+                                )}
+                            </div>
+                        </div>
+                    ))}
+                    {transactions.length === 0 && (
+                        <p className="text-center text-slate-500 py-8">Belum ada pesanan.</p>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+};
+
+export default OrdersManager;

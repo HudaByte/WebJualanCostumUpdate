@@ -18,7 +18,7 @@ const ProductDetail: React.FC = () => {
   const [showModal, setShowModal] = useState(false);
   const [step, setStep] = useState<1 | 2>(1); // 1: Email, 2: Method
   const [email, setEmail] = useState('');
-  const [targetLink, setTargetLink] = useState(''); // Store Link Tujuan / No. HP
+  const [targetLink, setTargetLink] = useState('-'); // Default '-' as field is removed from UI
   const [paymentMethod, setPaymentMethod] = useState<'MANUAL' | 'ATLANTIC_QRIS'>('ATLANTIC_QRIS');
   const [processing, setProcessing] = useState(false);
 
@@ -223,7 +223,8 @@ const ProductDetail: React.FC = () => {
                           onChange={(e) => setEmail(e.target.value)}
                         />
                       </div>
-                      <div>
+                      {/* Hidden Target Link Input (Defaulting to '-' as requested) */}
+                      {/* <div>
                         <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Nomor WhatsApp / Link Tujuan (Opsional)</label>
                         <input
                           type="text"
@@ -232,7 +233,7 @@ const ProductDetail: React.FC = () => {
                           value={targetLink}
                           onChange={(e) => setTargetLink(e.target.value)}
                         />
-                      </div>
+                      </div> */}
                       <button
                         disabled={!email}
                         onClick={() => setStep(2)}
