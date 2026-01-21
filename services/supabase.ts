@@ -3,12 +3,21 @@ import { createClient } from '@supabase/supabase-js';
 // Safe access to process.env for browser environments where it might not be defined
 // This prevents ReferenceError: process is not defined
 const getEnv = (key: string) => {
+  let value;
   try {
     // @ts-ignore
     if (typeof process !== 'undefined' && process.env) {
       // @ts-ignore
-      return process.env[key];
+      value = process.env[key];
     }
+  } catch (e) {
+    // Ignore error
+  }
+
+  // If found in process.env, return it
+  if (value !== undefined) return value;
+
+  try {
     // Check for Vite's import.meta.env
     // @ts-ignore
     if (typeof import.meta !== 'undefined' && import.meta.env) {
@@ -16,8 +25,9 @@ const getEnv = (key: string) => {
        return import.meta.env[key] || import.meta.env[`VITE_${key}`];
     }
   } catch (e) {
-    return undefined;
+    // Ignore error
   }
+  
   return undefined;
 };
 
