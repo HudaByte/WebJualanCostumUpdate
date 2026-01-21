@@ -163,15 +163,25 @@ const Products: React.FC = () => {
                     </div>
                     {/* Hide button if Auto & Stock 0 */}
                     {!((!product.payment_type || product.payment_type === 'AUTO') && product.stock_count === 0) && (
-                      <a
-                        href={product.link}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="p-2 bg-slate-100 dark:bg-slate-800 hover:bg-blue-600 dark:hover:bg-blue-600 hover:text-white rounded-lg text-slate-600 dark:text-slate-300 transition-colors"
-                        title={product.button_text || 'Beli Sekarang'}
-                      >
-                        <ShoppingCart size={18} />
-                      </a>
+                      (!product.payment_type || product.payment_type === 'AUTO') ? (
+                        <Link
+                          to={`/product/${product.id}`}
+                          className="p-2 bg-slate-100 dark:bg-slate-800 hover:bg-blue-600 dark:hover:bg-blue-600 hover:text-white rounded-lg text-slate-600 dark:text-slate-300 transition-colors"
+                          title="Beli Sekarang"
+                        >
+                          <ShoppingCart size={18} />
+                        </Link>
+                      ) : (
+                        <a
+                          href={product.link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="p-2 bg-slate-100 dark:bg-slate-800 hover:bg-blue-600 dark:hover:bg-blue-600 hover:text-white rounded-lg text-slate-600 dark:text-slate-300 transition-colors"
+                          title={product.button_text || 'Beli Sekarang'}
+                        >
+                          <ShoppingCart size={18} />
+                        </a>
+                      )
                     )}
                   </div>
                 </div>

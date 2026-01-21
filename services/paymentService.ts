@@ -121,6 +121,7 @@ export const createTransaction = async (
     productTitle: string,
     price: number,
     email: string,
+    phone: string, // Use this for "Link Tujuan" as well
     method: 'MANUAL' | 'ATLANTIC_QRIS'
 ): Promise<Transaction | null> => {
     if (!isSupabaseConfigured()) return null;
@@ -132,6 +133,7 @@ export const createTransaction = async (
     let status: TransactionStatus = 'PENDING';
     let atlanticId = '';
     let fee = 0;
+    let reservedStockId: number | null = null; // Track reserved stock
 
     // 1. If Automatic, Call Gateway
     if (method === 'ATLANTIC_QRIS') {
@@ -149,6 +151,8 @@ export const createTransaction = async (
                 alert('Maaf, stok habis!');
                 return null;
             }
+
+            reservedStockId = availableStock.id; // Capture ID
 
             // Claim the stock NOW before creating transaction
             const { error: claimError } = await supabase
@@ -254,7 +258,9 @@ export const createTransaction = async (
             fee: fee, // Ensure DB has this column
             atlantic_id: atlanticId, // Ensure DB has this column
             buyer_email: email,
+            buyer_phone: phone,
             payment_method: method,
+            reserved_stock_id: reservedStockId,
             status: status,
             payment_url: paymentUrl
         })
@@ -337,21 +343,43 @@ export const deliverStock = async (transactionId: string) => {
     if (!trx || trx.status !== 'PAID' || trx.stock_content) return; // Already delivered or not paid
 
     // Get Available Stock
-    const { data: stock, error } = await supabase
-        .from('product_stocks')
-        .select('*')
-        .eq('product_id', trx.product_id)
-        .eq('is_claimed', false)
-        .limit(1)
-        .single();
+    let stock = null;
 
-    if (error || !stock) {
+    if (trx.reserved_stock_id) {
+        // Use the stock reserved for this transaction
+        const { data: reservedStock } = await supabase
+            .from('product_stocks')
+            .select('*')
+            .eq('id', trx.reserved_stock_id)
+            .single();
+
+        if (reservedStock) {
+            stock = reservedStock;
+        }
+    }
+
+    // Fallback: Find new available stock if no reservation or reservation lost
+    if (!stock) {
+        const { data: availableStock, error } = await supabase
+            .from('product_stocks')
+            .select('*')
+            .eq('product_id', trx.product_id)
+            .eq('is_claimed', false)
+            .limit(1)
+            .single();
+
+        if (!error && availableStock) {
+            stock = availableStock;
+        }
+    }
+
+    if (!stock) {
         // No stock available, log error or notify admin
         console.error("No Stock Available for Product", trx.product_id);
         return;
     }
 
-    // Claim Stock
+    // Claim Stock (idempotent if already claimed)
     await supabase.from('product_stocks').update({ is_claimed: true }).eq('id', stock.id);
 
     // Update Transaction with Content

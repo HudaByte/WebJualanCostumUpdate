@@ -18,6 +18,7 @@ const ProductDetail: React.FC = () => {
   const [showModal, setShowModal] = useState(false);
   const [step, setStep] = useState<1 | 2>(1); // 1: Email, 2: Method
   const [email, setEmail] = useState('');
+  const [targetLink, setTargetLink] = useState(''); // Store Link Tujuan / No. HP
   const [paymentMethod, setPaymentMethod] = useState<'MANUAL' | 'ATLANTIC_QRIS'>('ATLANTIC_QRIS');
   const [processing, setProcessing] = useState(false);
 
@@ -64,7 +65,7 @@ const ProductDetail: React.FC = () => {
     if (!product || !email) return;
     setProcessing(true);
     try {
-      const trx = await createTransaction(product.id, product.title, product.price, email, paymentMethod);
+      const trx = await createTransaction(product.id, product.title, product.price, email, targetLink, paymentMethod);
       if (trx) {
         // Redirect to Persistent Payment Page
         navigate(`/payment/${trx.id}`);
@@ -220,6 +221,16 @@ const ProductDetail: React.FC = () => {
                           placeholder="nama@email.com"
                           value={email}
                           onChange={(e) => setEmail(e.target.value)}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Nomor WhatsApp / Link Tujuan (Opsional)</label>
+                        <input
+                          type="text"
+                          className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg p-3 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                          placeholder="Contoh: 08123456789 atau https://instagram.com/..."
+                          value={targetLink}
+                          onChange={(e) => setTargetLink(e.target.value)}
                         />
                       </div>
                       <button
