@@ -50,6 +50,14 @@ const Payment: React.FC = () => {
 
         const res = await cancelAtlanticTransaction(transaction.atlantic_id, apiKey);
         if (res.status) {
+            // Release stock if reserved
+            if (transaction.reserved_stock_id) {
+                await supabase
+                    .from('product_stocks')
+                    .update({ is_claimed: false })
+                    .eq('id', transaction.reserved_stock_id);
+            }
+
             // Update status in database to CANCELLED
             const { error } = await supabase
                 .from('transactions')

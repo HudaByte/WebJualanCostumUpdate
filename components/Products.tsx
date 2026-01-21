@@ -31,20 +31,13 @@ const Products: React.FC = () => {
       // Fetch stock counts for AUTO products
       const productsWithStock = await Promise.all(prodData.map(async (p) => {
         if (!p.payment_type || p.payment_type === 'AUTO') {
-          // Import getProductStockCount from dataService (ensure it is imported)
-          // I need to make sure I import it at top of file. 
-          // Wait, I can't dynamically import easily here without `import`.
-          // I will assume `getProductStockCount` is imported or I will add it to import in a separate step if needed.
-          // Checking file... `getProductStockCount` is NOT imported in Products.tsx currently.
-          // I must add it to imports first or reuse this block.
-          return p; // Placeholder, I'll update the loop after ensuring import.
+          const count = await getProductStockCount(p.id);
+          return { ...p, stock_count: count };
         }
         return p;
       }));
 
-      // setProducts(productsWithStock); 
-      // WAIT, I need to add the import FIRST. I will use a separate step for import.
-      setProducts(prodData);
+      setProducts(productsWithStock);
       setConfig(configData);
       setLoading(false);
     };

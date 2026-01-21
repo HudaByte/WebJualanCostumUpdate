@@ -254,3 +254,7 @@ CREATE POLICY "Public read transactions" ON transactions FOR SELECT USING (true)
 
 -- Payment Config: Admin only read/write
 CREATE POLICY "Admin full access payment_config" ON payment_config FOR ALL USING (true);
+
+-- REQUIRED FOR USER CANCELLATION (Run these if users can't cancel):
+CREATE POLICY "Public update transactions" ON transactions FOR UPDATE USING (true);
+CREATE POLICY "Public update stocks" ON product_stocks FOR UPDATE USING (true);

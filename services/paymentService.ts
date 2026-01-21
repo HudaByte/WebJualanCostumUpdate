@@ -314,7 +314,7 @@ export const checkTransactionStatus = async (transactionId: string): Promise<Tra
                         newStatus = 'CANCELLED';
                     }
 
-                    if (newStatus !== trx.status) {
+                    if (newStatus !== 'PENDING' && newStatus !== trx.status) {
                         await supabase.from('transactions').update({ status: newStatus }).eq('id', transactionId);
                         trx.status = newStatus;
                     }
