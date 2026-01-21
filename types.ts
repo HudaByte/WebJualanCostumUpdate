@@ -9,6 +9,8 @@ export interface Product {
   link: string;
   button_text?: string; // Custom text for the CTA button
   created_at?: string;
+  payment_type?: 'AUTO' | 'MANUAL'; // 'AUTO' (QRIS) or 'MANUAL' (WA)
+  stock_count?: number; // Optional: For display purposes
 }
 
 export interface Freebie {
@@ -36,6 +38,44 @@ export interface SocialLink {
 export interface NavItem {
   label: string;
   href: string;
+}
+
+// --- NEW PAYMENT & STOCK TYPES ---
+
+export interface ProductStock {
+  id: number;
+  product_id: number;
+  content: string;
+  is_claimed: boolean;
+  created_at?: string;
+}
+
+export type TransactionStatus = 'PENDING' | 'PAID' | 'FAILED' | 'CANCELLED' | 'EXPIRED';
+
+export interface Transaction {
+  id: string; // UUID
+  created_at?: string;
+  ref_id?: string;
+  product_id: number;
+  product_title: string;
+  price: number;
+  fee?: number;
+  get_balance?: number; // Merchant receives from Atlantic (nominal - fee)
+  unique_code?: number; // Random unique number (1-999) for payment verification
+  atlantic_id?: string;
+  buyer_email: string;
+  buyer_phone?: string;
+  payment_method: 'MANUAL' | 'ATLANTIC_QRIS';
+  status: TransactionStatus;
+  payment_url?: string; // QRIS URL
+  invoice_url?: string; // Generated after payment success
+  stock_content?: string; // Delivered content
+  reserved_stock_id?: number; // Stock ID reserved for this transaction
+}
+
+export interface PaymentConfig {
+  key: string;
+  value: string;
 }
 
 declare global {

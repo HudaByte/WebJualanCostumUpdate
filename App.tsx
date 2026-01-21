@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState, Suspense, lazy } from 'react';
-import { HashRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { Loader } from 'lucide-react';
 import { HelmetProvider } from 'react-helmet-async';
 import Navbar from './components/Navbar';
@@ -15,6 +15,9 @@ import { getSiteConfig } from './services/dataService';
 // Lazy Load Pages to reduce initial bundle size
 const ProductDetail = lazy(() => import('./pages/ProductDetail'));
 const Admin = lazy(() => import('./pages/Admin'));
+const StockManager = lazy(() => import('./pages/StockManager'));
+const Payment = lazy(() => import('./pages/Payment'));
+const Invoice = lazy(() => import('./pages/Invoice'));
 
 // Theme Context
 type Theme = 'light' | 'dark';
@@ -25,7 +28,7 @@ interface ThemeContextType {
 
 export const ThemeContext = createContext<ThemeContextType>({
   theme: 'light',
-  toggleTheme: () => {},
+  toggleTheme: () => { },
 });
 
 export const useTheme = () => useContext(ThemeContext);
@@ -80,7 +83,7 @@ const LoadingFallback = () => (
 
 const AppContent = () => {
   const location = useLocation();
-  // Check for admin path in hash router (e.g., #/adminhodewa)
+  // Check for admin path in browser router (e.g., /adminhodewa)
   const isAdmin = location.pathname.startsWith('/adminhodewa');
 
   // Update Favicon based on config (fallback if Helmet doesn't handle it)
@@ -116,6 +119,9 @@ const AppContent = () => {
             <Route path="/" element={<Home />} />
             <Route path="/product/:id" element={<ProductDetail />} />
             <Route path="/adminhodewa" element={<Admin />} />
+            <Route path="/adminhodewa/stock/:id" element={<StockManager />} />
+            <Route path="/payment/:id" element={<Payment />} />
+            <Route path="/invoice/:id" element={<Invoice />} />
           </Routes>
         </Suspense>
       </main>

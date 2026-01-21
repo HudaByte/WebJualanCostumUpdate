@@ -35,8 +35,8 @@ const Hero: React.FC = () => {
   return (
     <section id="home" className="relative min-h-screen flex items-center justify-center overflow-hidden pt-28 pb-12 md:pt-20 md:pb-0 bg-slate-50 dark:bg-slate-950 transition-colors duration-300 content-visibility-auto">
       {/* Background Glows - Reduced blur intensity for mobile performance */}
-      <div className="absolute top-0 left-1/4 w-64 h-64 md:w-96 md:h-96 bg-blue-400/20 dark:bg-blue-600/10 rounded-full blur-[50px] md:blur-[100px] animate-pulse-slow gpu-accel pointer-events-none"></div>
-      <div className="absolute bottom-0 right-1/4 w-64 h-64 md:w-96 md:h-96 bg-cyan-400/20 dark:bg-cyan-600/10 rounded-full blur-[50px] md:blur-[100px] pointer-events-none gpu-accel"></div>
+      <div className="absolute top-0 left-1/4 w-64 h-64 md:w-96 md:h-96 bg-blue-400/20 dark:bg-blue-600/10 rounded-full blur-[30px] md:blur-[100px] opacity-60 animate-pulse-slow gpu-accel pointer-events-none"></div>
+      <div className="absolute bottom-0 right-1/4 w-64 h-64 md:w-96 md:h-96 bg-cyan-400/20 dark:bg-cyan-600/10 rounded-full blur-[30px] md:blur-[100px] opacity-60 pointer-events-none gpu-accel"></div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
         <motion.div
@@ -59,22 +59,22 @@ const Hero: React.FC = () => {
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full sm:w-auto px-4 sm:px-0">
-            <a 
-              href="#produk" 
+            <a
+              href="#produk"
               onClick={(e) => {
-                  e.preventDefault();
-                  document.querySelector('#produk')?.scrollIntoView({behavior:'smooth'});
+                e.preventDefault();
+                document.querySelector('#produk')?.scrollIntoView({ behavior: 'smooth' });
               }}
               className="w-full sm:w-auto group px-8 py-4 rounded-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-semibold transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 flex items-center justify-center gap-2"
             >
               {btnPrimary}
               <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
             </a>
-            <a 
+            <a
               href="#gratis"
               onClick={(e) => {
-                  e.preventDefault();
-                  document.querySelector('#gratis')?.scrollIntoView({behavior:'smooth'});
+                e.preventDefault();
+                document.querySelector('#gratis')?.scrollIntoView({ behavior: 'smooth' });
               }}
               className="w-full sm:w-auto px-8 py-4 rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-blue-400 dark:hover:border-blue-500 text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 font-semibold transition-all shadow-sm hover:shadow-md text-center"
             >
@@ -82,37 +82,38 @@ const Hero: React.FC = () => {
             </a>
           </div>
         </motion.div>
-        
+
         {/* Floating Element Visual */}
-        <motion.div 
+        <motion.div
           className="mt-12 md:mt-16 relative w-full max-w-4xl mx-auto px-2 gpu-accel"
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.2, duration: 0.6 }}
         >
-           <div className="absolute inset-0 bg-gradient-to-b from-blue-100/50 to-transparent dark:from-blue-900/20 blur-3xl -z-10 transform-gpu"></div>
-           
-           {heroImage ? (
-             <img 
-               src={heroImage} 
-               alt="Dashboard Preview" 
-               width="1200" 
-               height="600"
-               // Critical: Async decoding to prevent scroll locking
-               decoding="async"
-               // Critical: High priority for LCP
-               fetchPriority="high"
-               className="rounded-xl border border-white dark:border-slate-800 shadow-2xl opacity-90 animate-float w-full h-auto ring-1 ring-slate-900/5 dark:ring-white/10"
-             />
-           ) : (
-             <div className="w-full h-[300px] md:h-[500px] bg-slate-200 dark:bg-slate-800/50 rounded-xl flex flex-col items-center justify-center border border-slate-300 dark:border-slate-700 animate-float">
-                <ImageOff size={48} className="text-slate-400 mb-2" />
-                <span className="text-slate-500 dark:text-slate-400 font-medium text-lg">Gambar Tidak tersedia</span>
-             </div>
-           )}
+          <div className="absolute inset-0 bg-gradient-to-b from-blue-100/50 to-transparent dark:from-blue-900/20 blur-3xl -z-10 transform-gpu"></div>
+
+          {heroImage ? (
+            <img
+              src={heroImage}
+              alt="Dashboard Preview"
+              width="1200"
+              height="600"
+              // Critical: Async decoding to prevent scroll locking
+              decoding="async"
+              // Critical: High priority for LCP
+              fetchPriority="high"
+              style={{ aspectRatio: '2/1' }}
+              className="rounded-xl border border-white dark:border-slate-800 shadow-2xl opacity-90 animate-float w-full h-auto ring-1 ring-slate-900/5 dark:ring-white/10 bg-slate-100 dark:bg-slate-800"
+            />
+          ) : (
+            <div className="w-full h-[300px] md:h-[500px] bg-slate-200 dark:bg-slate-800/50 rounded-xl flex flex-col items-center justify-center border border-slate-300 dark:border-slate-700 animate-float">
+              <ImageOff size={48} className="text-slate-400 mb-2" />
+              <span className="text-slate-500 dark:text-slate-400 font-medium text-lg">Gambar Tidak tersedia</span>
+            </div>
+          )}
         </motion.div>
       </div>
-    </section>
+    </section >
   );
 };
 

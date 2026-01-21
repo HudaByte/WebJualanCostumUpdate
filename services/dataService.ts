@@ -7,7 +7,7 @@ const MOCK_CONFIG: SiteConfig[] = [
   // General
   { key: 'brand_name', value: '' },
   { key: 'brand_logo_url', value: '' },
-  
+
   // SEO (Defaulting to generic if empty is usually better, but per request will leave empty)
   { key: 'seo_site_title', value: '' },
   { key: 'seo_description', value: '' },
@@ -48,10 +48,10 @@ const MOCK_CONFIG: SiteConfig[] = [
   { key: 'fake_purchase_enabled', value: 'false' }, // Disabled by default if no data
   { key: 'fake_purchase_delay', value: '20' },
   { key: 'fake_purchase_names', value: '' },
-  
+
   // Product Detail
   { key: 'product_badge_text', value: '' },
-  
+
   // Detail Page Features
   { key: 'detail_feature_1_title', value: '' },
   { key: 'detail_feature_1_desc', value: '' },
@@ -89,7 +89,7 @@ export const uploadImage = async (file: File): Promise<string> => {
 
 export const getProducts = async (): Promise<Product[]> => {
   // Return empty array if not configured to show "No Data" state in UI
-  if (!isSupabaseConfigured()) return []; 
+  if (!isSupabaseConfigured()) return [];
   const { data, error } = await supabase.from('products').select('*').order('created_at', { ascending: false });
   if (error) { console.error(error); return []; }
   return data || [];
@@ -152,6 +152,85 @@ export const updateProduct = async (id: number, product: Partial<Product>) => {
 export const deleteProduct = async (id: number) => {
   if (!isSupabaseConfigured()) return;
   const { error } = await supabase.from('products').delete().eq('id', id);
+  if (error) throw error;
+};
+
+// --- STOCK OPERATIONS ---
+
+export const getProductStockCount = async (productId: number): Promise<number> => {
+  if (!isSupabaseConfigured()) return 0;
+  const { count, error } = await supabase
+    .from('product_stocks')
+    .select('*', { count: 'exact', head: true })
+    .eq('product_id', productId)
+    .eq('is_claimed', false);
+  if (error) return 0;
+  return count || 0;
+};
+
+export const addProductStocks = async (productId: number, contentList: string[]) => {
+  if (!isSupabaseConfigured()) return;
+  const rows = contentList.map(c => ({ product_id: productId, content: c, is_claimed: false }));
+  const { error } = await supabase.from('product_stocks').insert(rows);
+  if (error) throw error;
+};
+
+export const getProductStocksList = async (productId: number): Promise<any[]> => {
+  if (!isSupabaseConfigured()) return [];
+  const { data, error } = await supabase
+    .from('product_stocks')
+    .select('*')
+    .eq('product_id', productId)
+    .order('id', { ascending: false }); // Newest first
+  if (error) { console.error(error); return []; }
+  return data || [];
+};
+
+export const updateProductStock = async (stockId: number, content: string) => {
+  if (!isSupabaseConfigured()) return;
+  const { error } = await supabase
+    .from('product_stocks')
+    .update({ content })
+    .eq('id', stockId);
+  if (error) throw error;
+};
+
+export const deleteProductStock = async (stockId: number) => {
+  if (!isSupabaseConfigured()) return;
+  const { error } = await supabase
+    .from('product_stocks')
+    .delete()
+    .eq('id', stockId);
+  if (error) throw error;
+};
+
+// --- TRANSACTION OPERATIONS ---
+
+export const getTransactions = async () => {
+  if (!isSupabaseConfigured()) return [];
+  const { data, error } = await supabase.from('transactions').select('*').order('created_at', { ascending: false });
+  if (error) throw error;
+  return data || [];
+};
+
+export const updateTransactionStatus = async (id: string, status: string) => {
+  if (!isSupabaseConfigured()) return;
+  const { error } = await supabase.from('transactions').update({ status }).eq('id', id);
+  if (error) throw error;
+};
+
+// --- SECURE PAYMENT CONFIG ---
+
+export const getPaymentConfig = async (): Promise<Record<string, string>> => {
+  if (!isSupabaseConfigured()) return {};
+  const { data, error } = await supabase.from('payment_config').select('*');
+  if (error) return {};
+  return (data || []).reduce((acc: any, curr: any) => ({ ...acc, [curr.key]: curr.value }), {});
+};
+
+export const savePaymentConfig = async (key: string, value: string) => {
+  if (!isSupabaseConfigured()) { console.log(`Mock Save Payment Config: ${key} = ${value}`); return; }
+  const { error } = await supabase.from('payment_config').upsert({ key, value });
   if (error) throw error;
 };
 
