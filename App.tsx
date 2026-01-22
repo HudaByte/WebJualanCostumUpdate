@@ -14,18 +14,45 @@ import SEO from './components/SEO';
 import PurchaseNotification from './components/PurchaseNotification';
 import PromoPopup from './components/PromoPopup';
 import StoreClosed from './components/StoreClosed';
-import Maintenance from './components/Maintenance';
-import Restocking from './components/Restocking';
 import { getSiteConfig } from './services/dataService';
 import { useStoreStatus } from './hooks/useStoreStatus';
 
-// Lazy Load Pages to reduce initial bundle size
-const ProductDetail = lazy(() => import('./pages/ProductDetail'));
-const Admin = lazy(() => import('./pages/Admin'));
-const StockManager = lazy(() => import('./pages/StockManager'));
-const Payment = lazy(() => import('./pages/Payment'));
-const Invoice = lazy(() => import('./pages/Invoice'));
-const Demo = lazy(() => import('./pages/Demo'));
+// Helper to auto-reload page if chunk is missing (New Deployment)
+const lazyWithReload = (componentImport: any) =>
+  React.lazy(async () => {
+    try {
+      return await componentImport();
+    } catch (error) {
+      console.error('Lazy load error:', error);
+      // Check if it's a chunk load error (usually network or 404)
+      const isChunkError = String(error).includes('Failed to fetch dynamically imported module') ||
+        String(error).includes('Importing a module script failed');
+
+      // Prevent infinite reload loop (limit to 1 reload per session/timestamp)
+      const storageKey = `reload_timestamp_${window.location.pathname}`;
+      const lastReload = sessionStorage.getItem(storageKey);
+      const now = Date.now();
+
+      if (isChunkError && (!lastReload || now - parseInt(lastReload) > 10000)) {
+        sessionStorage.setItem(storageKey, String(now));
+        window.location.reload();
+        return { default: () => <div className="min-h-screen flex items-center justify-center">Reloading...</div> };
+      }
+
+      throw error;
+    }
+  });
+
+
+const ProductDetail = lazyWithReload(() => import('./pages/ProductDetail'));
+const Admin = lazyWithReload(() => import('./pages/Admin'));
+const StockManager = lazyWithReload(() => import('./pages/StockManager'));
+const Payment = lazyWithReload(() => import('./pages/Payment'));
+const Invoice = lazyWithReload(() => import('./pages/Invoice'));
+const Demo = lazyWithReload(() => import('./pages/Demo'));
+const Maintenance = lazyWithReload(() => import('./components/Maintenance'));
+const Restocking = lazyWithReload(() => import('./components/Restocking'));
+
 
 // Theme Context
 type Theme = 'light' | 'dark';
@@ -191,6 +218,7 @@ const AppContent = () => {
       <main>
         <Suspense fallback={<LoadingFallback />}>
           <AnimatePresence mode="wait">
+            {/* @ts-ignore - Routes supports location but Types might be strict */}
             <Routes location={location} key={location.pathname}>
               <Route path="/" element={
                 <PageTransition>

@@ -270,16 +270,29 @@ const Payment: React.FC = () => {
                                     </div>
 
                                     {(transaction.stock_content || '').split('\n---\n').map((content, index) => (
-                                        <div key={index} className="relative group">
-                                            {((transaction.stock_content || '').split('\n---\n').length > 1) && (
-                                                <div className="absolute -top-2 left-2 bg-blue-600 text-white text-[10px] font-bold px-2 py-0.5 rounded shadow-sm uppercase tracking-wider z-10">
-                                                    Item #{index + 1}
+                                        <div key={index} className="relative group perspective-1000">
+                                            <div className="absolute -inset-0.5 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-xl blur opacity-20 group-hover:opacity-40 transition duration-500"></div>
+                                            <div className="relative bg-white dark:bg-[#0F172A] p-5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
+                                                {/* Badge */}
+                                                {((transaction.stock_content || '').split('\n---\n').length > 1) && (
+                                                    <div className="absolute -top-3 left-4 bg-gradient-to-r from-indigo-500 to-purple-600 text-white text-[10px] font-bold px-2 py-1 rounded shadow-sm uppercase tracking-wider">
+                                                        Item #{index + 1}
+                                                    </div>
+                                                )}
+
+                                                {/* Code Block */}
+                                                <div className="mt-2 font-mono text-sm leading-relaxed text-slate-600 dark:text-slate-300 whitespace-pre-wrap break-all pl-3 border-l-2 border-indigo-500/30">
+                                                    {content || 'Konten tidak tersedia.'}
                                                 </div>
-                                            )}
-                                            <div className="font-mono text-sm break-all text-slate-800 dark:text-slate-200 bg-white dark:bg-slate-900 p-3 pt-4 rounded-lg border border-blue-200 dark:border-blue-800 flex justify-between items-start gap-2 shadow-sm relative overflow-hidden">
-                                                <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-500"></div>
-                                                <span className="ml-2">{content}</span>
-                                                <button onClick={() => copyToClipboard(content)} className="text-blue-500 shrink-0 hover:text-blue-600 p-1 bg-blue-50 dark:bg-blue-900/30 rounded"><Copy size={14} /></button>
+
+                                                {/* Copy Button */}
+                                                <button
+                                                    onClick={() => copyToClipboard(content || '')}
+                                                    className="absolute top-4 right-4 p-2 bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg transition-colors"
+                                                    title="Copy"
+                                                >
+                                                    <Copy size={16} />
+                                                </button>
                                             </div>
                                         </div>
                                     ))}
