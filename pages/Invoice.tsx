@@ -141,7 +141,7 @@ const Invoice: React.FC = () => {
                                 </div>
                                 <div className="text-right">
                                     <p className="font-bold text-lg text-indigo-600 dark:text-indigo-400 print:text-black">
-                                        {formatPrice((transaction.get_balance || transaction.price) + (transaction.fee || 0))}
+                                        {formatPrice(transaction.get_balance || transaction.price)}
                                     </p>
                                 </div>
                             </div>
