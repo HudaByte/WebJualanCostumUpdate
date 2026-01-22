@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Transaction } from '../../types';
-import { Copy, CheckCircle, XCircle, Loader, CreditCard, FileText } from 'lucide-react';
-import { manualApproveTransaction, adminCancelTransaction } from '../../services/paymentService';
+import { Copy, CheckCircle, XCircle, Loader, CreditCard, FileText, RefreshCw } from 'lucide-react';
+import { manualApproveTransaction, adminCancelTransaction, checkTransactionStatus } from '../../services/paymentService';
 
 interface OrdersManagerProps {
     transactions: Transaction[];
@@ -10,10 +10,28 @@ interface OrdersManagerProps {
 
 const OrdersManager: React.FC<OrdersManagerProps> = ({ transactions, fetchData }) => {
     const [loadingAction, setLoadingAction] = useState(false);
+    const [checkingId, setCheckingId] = useState<string | null>(null);
 
     const copyToClipboard = (text: string) => {
         navigator.clipboard.writeText(text);
         alert('Disalin!');
+    };
+
+    const handleCheckStatus = async (transactionId: string) => {
+        setCheckingId(transactionId);
+        try {
+            const updatedTrx = await checkTransactionStatus(transactionId);
+            if (updatedTrx) {
+                alert(`Status Terupdate: ${updatedTrx.status}`);
+                fetchData();
+            } else {
+                alert('Tidak ada perubahan atau gagal cek status.');
+            }
+        } catch (error) {
+            console.error(error);
+            alert('Error checking status');
+        }
+        setCheckingId(null);
     };
 
     const handleManualApprove = async (transactionId: string) => {
@@ -89,13 +107,20 @@ const OrdersManager: React.FC<OrdersManagerProps> = ({ transactions, fetchData }
                                     <td className="p-4 font-medium">Rp {t.price.toLocaleString()}</td>
                                     <td className="p-4 text-xs uppercase">{t.payment_method === 'ATLANTIC_QRIS' ? 'QRIS Auto' : 'Manual'}</td>
                                     <td className="p-4">
-                                        <span className={`px-2 py-1 rounded text-xs font-bold inline-flex items-center gap-1 ${t.status === 'PAID' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
-                                            t.status === 'CANCELLED' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
-                                                'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
-                                            }`}>
-                                            {t.status === 'PAID' ? <CheckCircle size={12} /> : t.status === 'CANCELLED' ? <XCircle size={12} /> : <Loader size={12} className="animate-spin" />}
-                                            {t.status}
-                                        </span>
+                                        <div className="flex items-center gap-2">
+                                            <span className={`px-2 py-1 rounded text-xs font-bold inline-flex items-center gap-1 ${t.status === 'PAID' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
+                                                t.status === 'CANCELLED' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
+                                                    'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
+                                                }`}>
+                                                {t.status === 'PAID' ? <CheckCircle size={12} /> : t.status === 'CANCELLED' ? <XCircle size={12} /> : <Loader size={12} className="animate-spin" />}
+                                                {t.status}
+                                            </span>
+                                            {t.status === 'PENDING' && t.payment_method === 'ATLANTIC_QRIS' && (
+                                                <button onClick={() => handleCheckStatus(t.id)} disabled={checkingId === t.id} className="p-1 text-slate-400 hover:text-blue-500 transition-colors" title="Cek Status Terbaru">
+                                                    <RefreshCw size={14} className={checkingId === t.id ? "animate-spin" : ""} />
+                                                </button>
+                                            )}
+                                        </div>
                                     </td>
                                     <td className="p-4">
                                         <div className="flex justify-center gap-2">
@@ -145,12 +170,19 @@ const OrdersManager: React.FC<OrdersManagerProps> = ({ transactions, fetchData }
                                     <span className="text-xs font-mono text-slate-500 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded">{t.ref_id}</span>
                                     <p className="text-xs text-slate-400 mt-1">{new Date(t.created_at || '').toLocaleString()}</p>
                                 </div>
-                                <span className={`px-2 py-1 rounded text-xs font-bold inline-flex items-center gap-1 ${t.status === 'PAID' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
-                                    t.status === 'CANCELLED' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
-                                        'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
-                                    }`}>
-                                    {t.status}
-                                </span>
+                                <div className="flex items-center gap-2">
+                                    <span className={`px-2 py-1 rounded text-xs font-bold inline-flex items-center gap-1 ${t.status === 'PAID' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
+                                        t.status === 'CANCELLED' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
+                                            'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
+                                        }`}>
+                                        {t.status}
+                                    </span>
+                                    {t.status === 'PENDING' && t.payment_method === 'ATLANTIC_QRIS' && (
+                                        <button onClick={() => handleCheckStatus(t.id)} disabled={checkingId === t.id} className="p-1 text-slate-400 hover:text-blue-500 transition-colors" title="Cek Status Terbaru">
+                                            <RefreshCw size={14} className={checkingId === t.id ? "animate-spin" : ""} />
+                                        </button>
+                                    )}
+                                </div>
                             </div>
 
                             <div>
