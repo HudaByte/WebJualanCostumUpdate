@@ -279,8 +279,18 @@ export const checkTransactionStatus = async (transactionId: string): Promise<Tra
     const { data: trx, error } = await supabase.from('transactions').select('*').eq('id', transactionId).single();
     if (error || !trx) return null;
 
-    // 2. If already paid/cancelled, return as-is
-    if (trx.status === 'PAID' || trx.status === 'CANCELLED') return trx;
+    // 2. If already paid/cancelled, return as-is (with retry for missing content)
+    if (trx.status === 'PAID') {
+        if (!trx.stock_content) {
+            devLog('[Check Status] PAID but missing content. Retrying delivery...');
+            await deliverStock(transactionId);
+            const { data: updated } = await supabase.from('transactions').select('*').eq('id', transactionId).single();
+            return updated;
+        }
+        return trx;
+    }
+
+    if (trx.status === 'CANCELLED') return trx;
 
     // 3. If PENDING and ATLANTIC_QRIS, check with Atlantic API for latest status
     if (trx.status === 'PENDING' && trx.payment_method === 'ATLANTIC_QRIS' && trx.atlantic_id) {
