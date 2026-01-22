@@ -280,6 +280,8 @@ export const checkTransactionStatus = async (transactionId: string): Promise<Tra
     if (error || !trx) return null;
 
     // 2. If already paid/cancelled, return as-is (with retry for missing content)
+    console.log('[Check Status] Initial DB Status:', trx.status, 'Atlantic ID:', trx.atlantic_id);
+
     if (trx.status === 'PAID') {
         if (!trx.stock_content) {
             devLog('[Check Status] PAID but missing content. Retrying delivery...');
@@ -312,20 +314,30 @@ export const checkTransactionStatus = async (transactionId: string): Promise<Tra
                 });
 
                 const result = await response.json();
+                console.log('[Check Status] Atlantic API Response:', result);
 
                 // Update DB if status changed
                 if (result.status && result.data) {
                     const atlanticStatus = result.data.status; // 'success', 'pending', 'expired', 'cancel'
                     let newStatus: TransactionStatus = 'PENDING';
 
+                    console.log('[Check Status] Atlantic Status:', atlanticStatus);
+
                     if (atlanticStatus === 'success' || atlanticStatus === 'processing') {
                         newStatus = 'PAID';
+
+                        console.log('[Check Status] Updating DB to PAID immediately...');
+                        // CRITICAL FIX: Update DB *before* delivering stock so deliverStock sees PAID status
+                        await supabase.from('transactions').update({ status: 'PAID' }).eq('id', transactionId);
+                        trx.status = 'PAID'; // Update local object too
+
                         // Trigger stock delivery
                         await deliverStock(transactionId);
 
                         // RE-FETCH transaction to get the delivered stock_content
                         const { data: freshTrx } = await supabase.from('transactions').select('*').eq('id', transactionId).single();
                         if (freshTrx) {
+                            console.log('[Check Status] Returning fresh PAID transaction:', freshTrx);
                             return freshTrx;
                         }
                     } else if (atlanticStatus === 'cancel' || atlanticStatus === 'expired') {
@@ -350,8 +362,14 @@ export const checkTransactionStatus = async (transactionId: string): Promise<Tra
                     if (newStatus !== 'PENDING' && newStatus !== trx.status) {
                         await supabase.from('transactions').update({ status: newStatus }).eq('id', transactionId);
                         trx.status = newStatus;
+                    } else {
+                        console.log('[Check Status] No status change needed. DB:', trx.status, 'New:', newStatus);
                     }
+                } else {
+                    console.log('[Check Status] Atlantic API returned false status or no data');
                 }
+            } else {
+                console.log('[Check Status] API Key not found');
             }
         } catch (e) {
             securityLog("Atlantic Status Check Error", { error: (e as Error).message });

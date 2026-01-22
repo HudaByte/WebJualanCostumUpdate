@@ -153,7 +153,14 @@ const Invoice: React.FC = () => {
                                     <span>{formatPrice(transaction.get_balance || transaction.price)}</span>
                                 </div>
                                 <div className="flex justify-between text-sm text-slate-600 dark:text-slate-400 print:text-slate-600">
-                                    <span>Biaya Layanan (Fee)</span>
+                                    <span>
+                                        Biaya Layanan
+                                        {transaction.payment_method === 'ATLANTIC_QRIS' ? (
+                                            <span className="inline-flex items-center gap-1 ml-1 align-bottom">
+                                                (<img src="/qris2.png" alt="QRIS" className="h-5 w-auto bg-white rounded px-2 py-0.5" />)
+                                            </span>
+                                        ) : ' (Fee)'}
+                                    </span>
                                     <span>{formatPrice(transaction.fee || 0)}</span>
                                 </div>
                                 {transaction.unique_code > 0 && (

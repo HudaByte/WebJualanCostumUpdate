@@ -337,7 +337,9 @@ const ProductDetail: React.FC = () => {
                             className={`w-full flex items-center justify-between p-4 rounded-xl border-2 transition-all ${paymentMethod === 'ATLANTIC_QRIS' ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' : 'border-slate-200 dark:border-slate-700 hover:border-blue-300'}`}
                           >
                             <div className="flex items-center gap-3">
-                              <div className="bg-white p-2 rounded shadow-sm"><QrCode className="text-slate-900" size={24} /></div>
+                              <div className="bg-white p-2 rounded shadow-sm">
+                                <img src="/qris2.png" alt="QRIS" className="h-6 w-auto object-contain" />
+                              </div>
                               <div className="text-left">
                                 <div className="font-bold text-slate-900 dark:text-white">QRIS Otomatis</div>
                                 <div className="text-xs text-slate-500">Cek Otomatis + Instan</div>

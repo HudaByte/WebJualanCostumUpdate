@@ -19,6 +19,7 @@ const Payment: React.FC = () => {
     const fetchTransaction = useCallback(async () => {
         if (!id) return;
         const trx = await checkTransactionStatus(id);
+        console.log('[Payment Page] Fetched Transaction:', trx);
         if (trx) setTransaction(trx);
         setLoading(false);
     }, [id]);
@@ -181,7 +182,14 @@ const Payment: React.FC = () => {
                                 <span>{formatPrice(displayAmount)}</span>
                             </div>
                             <div className="flex justify-between text-sm text-slate-600 dark:text-slate-400">
-                                <span>Biaya Layanan ({transaction.payment_method === 'ATLANTIC_QRIS' ? 'QRIS' : 'Manual'})</span>
+                                <span>
+                                    Biaya Layanan
+                                    {transaction.payment_method === 'ATLANTIC_QRIS' ? (
+                                        <span className="inline-flex items-center gap-1 ml-1 align-bottom">
+                                            (<img src="/qris2.png" alt="QRIS" className="h-5 w-auto bg-white rounded px-2 py-0.5" />)
+                                        </span>
+                                    ) : ' (Manual)'}
+                                </span>
                                 <span>{formatPrice(transaction.fee || 0)}</span>
                             </div>
                             {/* Only show Unique Code if > 0 */}
