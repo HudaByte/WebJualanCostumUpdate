@@ -279,3 +279,13 @@ CREATE POLICY "Admin full access payment_config" ON payment_config FOR ALL USING
 -- REQUIRED FOR USER CANCELLATION (Run these if users can't cancel):
 CREATE POLICY "Public update transactions" ON transactions FOR UPDATE USING (true);
 CREATE POLICY "Public update stocks" ON product_stocks FOR UPDATE USING (true);
+
+-- ============================================================================
+-- 2024-0X-XX UPDATE: Add Quantity & Multi-Item Support
+-- ============================================================================
+
+-- 1. Add 'quantity' column to transactions table (default to 1)
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS quantity INTEGER DEFAULT 1;
+
+-- 2. Add 'reserved_stock_ids' column (Array of Numbers) for multi-item support
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS reserved_stock_ids BIGINT[];

@@ -312,6 +312,12 @@ export const checkTransactionStatus = async (transactionId: string): Promise<Tra
                         newStatus = 'PAID';
                         // Trigger stock delivery
                         await deliverStock(transactionId);
+
+                        // RE-FETCH transaction to get the delivered stock_content
+                        const { data: freshTrx } = await supabase.from('transactions').select('*').eq('id', transactionId).single();
+                        if (freshTrx) {
+                            return freshTrx;
+                        }
                     } else if (atlanticStatus === 'cancel' || atlanticStatus === 'expired') {
                         newStatus = 'CANCELLED';
 
