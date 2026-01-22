@@ -42,6 +42,20 @@ const OrdersManager: React.FC<OrdersManagerProps> = ({ transactions, fetchData }
         setLoadingAction(false);
     };
 
+    const [currentPage, setCurrentPage] = useState(1);
+    const ITEMS_PER_PAGE = 20;
+
+    const totalPages = Math.ceil(transactions.length / ITEMS_PER_PAGE);
+    const paginatedTransactions = transactions.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+
+    const handlePrevPage = () => {
+        if (currentPage > 1) setCurrentPage(prev => prev - 1);
+    };
+
+    const handleNextPage = () => {
+        if (currentPage < totalPages) setCurrentPage(prev => prev + 1);
+    };
+
     return (
         <div>
             <h2 className="text-xl font-bold mb-6 text-slate-800 dark:text-white">Daftar Pesanan</h2>
@@ -63,7 +77,7 @@ const OrdersManager: React.FC<OrdersManagerProps> = ({ transactions, fetchData }
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                            {transactions.map(t => (
+                            {paginatedTransactions.map(t => (
                                 <tr key={t.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                                     <td className="p-4 font-mono text-xs">{t.ref_id}</td>
                                     <td className="p-4 text-xs text-slate-500">{new Date(t.created_at || '').toLocaleDateString()} {new Date(t.created_at || '').toLocaleTimeString()}</td>
@@ -113,7 +127,7 @@ const OrdersManager: React.FC<OrdersManagerProps> = ({ transactions, fetchData }
                                     </td>
                                 </tr>
                             ))}
-                            {transactions.length === 0 && (
+                            {paginatedTransactions.length === 0 && (
                                 <tr>
                                     <td colSpan={8} className="p-8 text-center text-slate-500">Belum ada pesanan.</td>
                                 </tr>
@@ -124,7 +138,7 @@ const OrdersManager: React.FC<OrdersManagerProps> = ({ transactions, fetchData }
 
                 {/* Mobile Card View */}
                 <div className="md:hidden space-y-4 p-4 bg-slate-50 dark:bg-slate-900/50">
-                    {transactions.map(t => (
+                    {paginatedTransactions.map(t => (
                         <div key={t.id} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-lg shadow-sm flex flex-col gap-3">
                             <div className="flex justify-between items-start">
                                 <div>
@@ -176,10 +190,35 @@ const OrdersManager: React.FC<OrdersManagerProps> = ({ transactions, fetchData }
                             </div>
                         </div>
                     ))}
-                    {transactions.length === 0 && (
+                    {paginatedTransactions.length === 0 && (
                         <p className="text-center text-slate-500 py-8">Belum ada pesanan.</p>
                     )}
                 </div>
+
+                {/* Pagination Controls */}
+                {transactions.length > ITEMS_PER_PAGE && (
+                    <div className="bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 p-4 flex items-center justify-between">
+                        <span className="text-sm text-slate-500 dark:text-slate-400">
+                            Halaman {currentPage} dari {totalPages}
+                        </span>
+                        <div className="flex gap-2">
+                            <button
+                                onClick={handlePrevPage}
+                                disabled={currentPage === 1}
+                                className="px-3 py-1 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed text-slate-600 dark:text-slate-300"
+                            >
+                                Sebelumnya
+                            </button>
+                            <button
+                                onClick={handleNextPage}
+                                disabled={currentPage === totalPages}
+                                className="px-3 py-1 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed text-slate-600 dark:text-slate-300"
+                            >
+                                Selanjutnya
+                            </button>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );
