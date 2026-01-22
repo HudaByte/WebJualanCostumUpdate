@@ -18,24 +18,8 @@ export const calculateTransferFee = (nominal: number): FeeCalculation => {
         return { nominal: 0, fee: 0, total: 0 };
     }
 
-    let fee = 0;
-
-    // Atlantic fee structure (adjust based on actual Atlantic rates)
-    // Example structure - verify with Atlantic documentation:
-    if (nominal <= 10000) {
-        fee = 1500; // Flat Rp 1500 untuk transfer kecil
-    } else if (nominal <= 50000) {
-        fee = 2500; // Rp 2500
-    } else if (nominal <= 100000) {
-        fee = 3000; // Rp 3000
-    } else if (nominal <= 500000) {
-        fee = 4000; // Rp 4000
-    } else if (nominal <= 1000000) {
-        fee = 5000; // Rp 5000
-    } else {
-        // For amounts > 1M, use percentage
-        fee = Math.ceil(nominal * 0.005); // 0.5% fee
-    }
+    // Flat fee as per user request
+    const fee = 2000;
 
     const total = nominal + fee;
 

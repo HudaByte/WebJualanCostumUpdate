@@ -318,7 +318,7 @@ export const checkTransactionStatus = async (transactionId: string): Promise<Tra
                     const atlanticStatus = result.data.status; // 'success', 'pending', 'expired', 'cancel'
                     let newStatus: TransactionStatus = 'PENDING';
 
-                    if (atlanticStatus === 'success') {
+                    if (atlanticStatus === 'success' || atlanticStatus === 'processing') {
                         newStatus = 'PAID';
                         // Trigger stock delivery
                         await deliverStock(transactionId);
