@@ -263,13 +263,30 @@ const Payment: React.FC = () => {
                                 </div>
 
                                 {/* Paid Content Delivery */}
-                                <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl border border-blue-100 dark:border-blue-800">
-                                    <p className="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase mb-1">Kode / Konten Anda:</p>
-                                    <div className="font-mono text-sm break-all text-slate-800 dark:text-slate-200 bg-white dark:bg-slate-900 p-3 rounded-lg border border-blue-200 dark:border-blue-800 flex justify-between items-start gap-2 shadow-sm">
-                                        <span>{transaction.stock_content}</span>
-                                        <button onClick={() => copyToClipboard(transaction.stock_content || '')} className="text-blue-500 shrink-0 hover:text-blue-600"><Copy size={16} /></button>
+                                <div className="space-y-4">
+                                    <div className="flex items-center gap-2 text-sm font-bold text-slate-800 dark:text-white uppercase tracking-wider">
+                                        <span>Akses Produk Anda</span>
+                                        <span className="flex-1 h-px bg-slate-200 dark:border-slate-700"></span>
                                     </div>
-                                    <p className="text-xs text-slate-500 mt-2">Simpan kode/link ini baik-baik.</p>
+
+                                    {(transaction.stock_content || '').split('\n---\n').map((content, index) => (
+                                        <div key={index} className="relative group">
+                                            {((transaction.stock_content || '').split('\n---\n').length > 1) && (
+                                                <div className="absolute -top-2 left-2 bg-blue-600 text-white text-[10px] font-bold px-2 py-0.5 rounded shadow-sm uppercase tracking-wider z-10">
+                                                    Item #{index + 1}
+                                                </div>
+                                            )}
+                                            <div className="font-mono text-sm break-all text-slate-800 dark:text-slate-200 bg-white dark:bg-slate-900 p-3 pt-4 rounded-lg border border-blue-200 dark:border-blue-800 flex justify-between items-start gap-2 shadow-sm relative overflow-hidden">
+                                                <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-500"></div>
+                                                <span className="ml-2">{content}</span>
+                                                <button onClick={() => copyToClipboard(content)} className="text-blue-500 shrink-0 hover:text-blue-600 p-1 bg-blue-50 dark:bg-blue-900/30 rounded"><Copy size={14} /></button>
+                                            </div>
+                                        </div>
+                                    ))}
+
+                                    <p className="text-xs text-center text-slate-400 mt-2">
+                                        Simpan kode/link ini baik-baik.
+                                    </p>
                                 </div>
                             </>
                         )}
