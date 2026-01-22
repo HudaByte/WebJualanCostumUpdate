@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Transaction } from '../../types';
-import { Copy, CheckCircle, XCircle, Loader } from 'lucide-react';
+import { Copy, CheckCircle, XCircle, Loader, CreditCard, FileText } from 'lucide-react';
 import { manualApproveTransaction, adminCancelTransaction } from '../../services/paymentService';
 
 interface OrdersManagerProps {
@@ -85,6 +85,8 @@ const OrdersManager: React.FC<OrdersManagerProps> = ({ transactions, fetchData }
                                     </td>
                                     <td className="p-4">
                                         <div className="flex justify-center gap-2">
+                                            <button onClick={() => copyToClipboard(`${window.location.origin}/payment/${t.id}`)} className="p-1.5 text-blue-600 hover:bg-blue-50 border border-blue-200 rounded" title="Copy Payment URL"><CreditCard size={16} /></button>
+                                            <button onClick={() => copyToClipboard(`${window.location.origin}/invoice/${t.id}`)} className="p-1.5 text-purple-600 hover:bg-purple-50 border border-purple-200 rounded" title="Copy Invoice URL"><FileText size={16} /></button>
                                             <button onClick={() => copyToClipboard(`${t.ref_id} - ${t.product_title}`)} className="p-1.5 text-slate-500 hover:text-blue-500 border rounded" title="Copy Info"><Copy size={16} /></button>
 
                                             {t.status === 'PENDING' && (
@@ -148,9 +150,18 @@ const OrdersManager: React.FC<OrdersManagerProps> = ({ transactions, fetchData }
                                 <p><span className="font-semibold">Metode:</span> {t.payment_method === 'ATLANTIC_QRIS' ? 'QRIS Auto' : 'Manual'}</p>
                             </div>
 
-                            <div className="flex gap-2 pt-2 border-t border-slate-100 dark:border-slate-800 mt-1">
+                            <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100 dark:border-slate-800 mt-1">
+                                <button onClick={() => copyToClipboard(`${window.location.origin}/payment/${t.id}`)} className="py-2 text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded text-xs font-medium flex items-center justify-center gap-1">
+                                    <CreditCard size={14} /> Copy Payment
+                                </button>
+                                <button onClick={() => copyToClipboard(`${window.location.origin}/invoice/${t.id}`)} className="py-2 text-purple-600 bg-purple-50 hover:bg-purple-100 border border-purple-200 rounded text-xs font-medium flex items-center justify-center gap-1">
+                                    <FileText size={14} /> Copy Invoice
+                                </button>
+                            </div>
+
+                            <div className="flex gap-2">
                                 <button onClick={() => copyToClipboard(`${t.ref_id} - ${t.product_title}`)} className="flex-1 py-2 text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded text-xs font-medium flex items-center justify-center gap-1">
-                                    <Copy size={14} /> Salin
+                                    <Copy size={14} /> Copy Info
                                 </button>
                                 {t.status === 'PENDING' && (
                                     <>

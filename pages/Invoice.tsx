@@ -165,7 +165,7 @@ const Invoice: React.FC = () => {
                                 <div className="flex justify-between text-lg font-bold pt-3 border-t border-dashed border-slate-200 dark:border-slate-700 print:border-slate-300 text-slate-900 dark:text-white print:text-black">
                                     <span>Total Dibayar</span>
                                     <span className="text-indigo-600 dark:text-indigo-400 print:text-black">
-                                        {formatPrice((transaction.get_balance || transaction.price) + (transaction.fee || 0))}
+                                        {formatPrice((transaction.get_balance || transaction.price) + (transaction.fee || 0) + (transaction.unique_code || 0))}
                                     </span>
                                 </div>
                             </div>
