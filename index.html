@@ -135,6 +135,27 @@
         content-visibility: auto;
         contain-intrinsic-size: 1px 800px; /* Estimated section height */
       }
+      
+      /* Global Print Utility */
+      @media print {
+        nav, footer, button, .print\:hidden {
+          display: none !important;
+        }
+        body {
+          background-color: white !important;
+          color: black !important;
+        }
+        /* Reset any fixed positioning on print */
+        * {
+          position: static !important; 
+          box-shadow: none !important;
+          text-shadow: none !important;
+        }
+        /* Ensure invoice container is full width */
+        .max-w-2xl {
+          max-width: 100% !important;
+        }
+      }
     </style>
   <script type="importmap">
 {

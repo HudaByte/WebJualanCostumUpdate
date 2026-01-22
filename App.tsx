@@ -1,7 +1,9 @@
 import React, { createContext, useContext, useEffect, useState, Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { Loader } from 'lucide-react';
+import { AnimatePresence } from 'framer-motion';
 import { HelmetProvider } from 'react-helmet-async';
+import PageTransition from './components/PageTransition';
 import Navbar from './components/Navbar';
 import Hero from './components/Hero';
 import Products from './components/Products';
@@ -10,7 +12,12 @@ import WhatsAppChannel from './components/WhatsAppChannel';
 import Footer from './components/Footer';
 import SEO from './components/SEO';
 import PurchaseNotification from './components/PurchaseNotification';
+import PromoPopup from './components/PromoPopup';
+import StoreClosed from './components/StoreClosed';
+import Maintenance from './components/Maintenance';
+import Restocking from './components/Restocking';
 import { getSiteConfig } from './services/dataService';
+import { useStoreStatus } from './hooks/useStoreStatus';
 
 // Lazy Load Pages to reduce initial bundle size
 const ProductDetail = lazy(() => import('./pages/ProductDetail'));
@@ -18,6 +25,7 @@ const Admin = lazy(() => import('./pages/Admin'));
 const StockManager = lazy(() => import('./pages/StockManager'));
 const Payment = lazy(() => import('./pages/Payment'));
 const Invoice = lazy(() => import('./pages/Invoice'));
+const Demo = lazy(() => import('./pages/Demo'));
 
 // Theme Context
 type Theme = 'light' | 'dark';
@@ -66,14 +74,36 @@ const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) =>
 };
 
 // Home Component that contains the scrollable sections
-const Home = () => (
-  <>
-    <Hero />
-    <Products />
-    <Freebies />
-    <WhatsAppChannel />
-  </>
-);
+const Home = () => {
+  const [config, setConfig] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    const fetchConfig = async () => {
+      const siteConfig = await getSiteConfig();
+      setConfig(siteConfig);
+    };
+    fetchConfig();
+  }, []);
+
+  return (
+    <>
+      <Hero />
+      <Products />
+      <Freebies />
+      <WhatsAppChannel />
+
+      {/* Promo Popup */}
+      <PromoPopup
+        enabled={config.popup_enabled === 'true'}
+        imageUrl={config.popup_image_url}
+        text={config.popup_text}
+        linkUrl={config.popup_link}
+        delaySeconds={parseInt(config.popup_delay || '30')}
+        repeatMode={config.popup_repeat_mode === 'true'}
+      />
+    </>
+  );
+};
 
 const LoadingFallback = () => (
   <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950">
@@ -83,8 +113,20 @@ const LoadingFallback = () => (
 
 const AppContent = () => {
   const location = useLocation();
+  const [config, setConfig] = useState<Record<string, string>>({});
+  const { status } = useStoreStatus(config);
+
   // Check for admin path in browser router (e.g., /adminhodewa)
   const isAdmin = location.pathname.startsWith('/adminhodewa');
+
+  // Load config for store status
+  useEffect(() => {
+    const fetchConfig = async () => {
+      const siteConfig = await getSiteConfig();
+      setConfig(siteConfig);
+    };
+    fetchConfig();
+  }, []);
 
   // Update Favicon based on config (fallback if Helmet doesn't handle it)
   useEffect(() => {
@@ -108,6 +150,39 @@ const AppContent = () => {
     updateFavicon();
   }, []);
 
+  // Inject Global Smooth Scroll
+  useEffect(() => {
+    document.documentElement.style.scrollBehavior = 'smooth';
+    return () => {
+      document.documentElement.style.scrollBehavior = '';
+    };
+  }, []);
+
+  // Handle various store statuses (if not admin)
+  if (!isAdmin) {
+    if (status === 'maintenance') {
+      return <Maintenance brandName={config.brand_name} logoUrl={config.brand_logo_url} />;
+    }
+
+    if (status === 'restocking') {
+      return <Restocking brandName={config.brand_name} logoUrl={config.brand_logo_url} />;
+    }
+
+    if (status === 'closed') {
+      return (
+        <StoreClosed
+          message={config.store_closed_message}
+          openTime={config.store_hours_open}
+          closeTime={config.store_hours_close}
+          operatingDays={config.store_days?.split(',').map(Number).filter(Boolean)}
+          contactLink={config.store_closed_contact_link}
+          brandName={config.brand_name}
+          logoUrl={config.brand_logo_url}
+        />
+      );
+    }
+  }
+
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-sans selection:bg-blue-500 selection:text-white transition-colors duration-300">
       <SEO />
@@ -115,14 +190,21 @@ const AppContent = () => {
       {!isAdmin && <Navbar />}
       <main>
         <Suspense fallback={<LoadingFallback />}>
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/product/:id" element={<ProductDetail />} />
-            <Route path="/adminhodewa" element={<Admin />} />
-            <Route path="/adminhodewa/stock/:id" element={<StockManager />} />
-            <Route path="/payment/:id" element={<Payment />} />
-            <Route path="/invoice/:id" element={<Invoice />} />
-          </Routes>
+          <AnimatePresence mode="wait">
+            <Routes location={location} key={location.pathname}>
+              <Route path="/" element={
+                <PageTransition>
+                  <Home />
+                </PageTransition>
+              } />
+              <Route path="/product/:id" element={<ProductDetail />} />
+              <Route path="/adminhodewa" element={<Admin />} />
+              <Route path="/adminhodewa/stock/:id" element={<StockManager />} />
+              <Route path="/payment/:id" element={<Payment />} />
+              <Route path="/invoice/:id" element={<Invoice />} />
+              <Route path="/demo" element={<Demo />} />
+            </Routes>
+          </AnimatePresence>
         </Suspense>
       </main>
       {!isAdmin && <Footer />}

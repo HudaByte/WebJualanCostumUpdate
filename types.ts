@@ -6,11 +6,13 @@ export interface Product {
   price: number;
   original_price?: number; // Harga Coret (Diskon)
   image_url: string;
-  link: string;
+  link?: string;
   button_text?: string; // Custom text for the CTA button
   created_at?: string;
   payment_type?: 'AUTO' | 'MANUAL'; // 'AUTO' (QRIS) or 'MANUAL' (WA)
   stock_count?: number; // Optional: For display purposes
+  sold_count?: number; // Jumlah terjual (Edited by admin or auto-increment)
+  manual_stock?: number; // Stok untuk produk manual (Edited by admin)
 }
 
 export interface Freebie {
@@ -72,6 +74,8 @@ export interface Transaction {
   stock_content?: string; // Delivered content
   reserved_stock_id?: number; // Stock ID reserved for this transaction
   expired_at?: string; // Expiration time from Payment Gateway
+  quantity?: number; // Number of items purchased
+  reserved_stock_ids?: number[]; // IDs of reserved stocks (for multiple items)
 }
 
 export interface PaymentConfig {

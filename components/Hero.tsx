@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowRight, Zap, ImageOff } from 'lucide-react';
 import { getSiteConfig } from '../services/dataService';
 
@@ -91,26 +91,111 @@ const Hero: React.FC = () => {
           transition={{ delay: 0.2, duration: 0.6 }}
         >
           <div className="absolute inset-0 bg-gradient-to-b from-blue-100/50 to-transparent dark:from-blue-900/20 blur-3xl -z-10 transform-gpu"></div>
+          {(() => {
+            let slides: { image: string, link: string }[] = [];
+            try {
+              slides = JSON.parse(config['hero_slides'] || '[]');
+            } catch (e) {
+              slides = [];
+            }
 
-          {heroImage ? (
-            <img
-              src={heroImage}
-              alt="Dashboard Preview"
-              width="1200"
-              height="600"
-              // Critical: Async decoding to prevent scroll locking
-              decoding="async"
-              // Critical: High priority for LCP
-              fetchPriority="high"
-              style={{ aspectRatio: '2/1' }}
-              className="rounded-xl border border-white dark:border-slate-800 shadow-2xl opacity-90 animate-float w-full h-auto ring-1 ring-slate-900/5 dark:ring-white/10 bg-slate-100 dark:bg-slate-800"
-            />
-          ) : (
-            <div className="w-full h-[300px] md:h-[500px] bg-slate-200 dark:bg-slate-800/50 rounded-xl flex flex-col items-center justify-center border border-slate-300 dark:border-slate-700 animate-float">
-              <ImageOff size={48} className="text-slate-400 mb-2" />
-              <span className="text-slate-500 dark:text-slate-400 font-medium text-lg">Gambar Tidak tersedia</span>
-            </div>
-          )}
+            const activeSlides = slides.filter(s => s.image);
+            const interval = parseInt(config['hero_slides_interval'] || '5000');
+
+            // Hook for current slide index
+            const [currentIndex, setCurrentIndex] = useState(0);
+
+            useEffect(() => {
+              if (activeSlides.length <= 1) return;
+              const timer = setInterval(() => {
+                setCurrentIndex((prev) => (prev + 1) % activeSlides.length);
+              }, interval);
+              return () => clearInterval(timer);
+            }, [activeSlides.length, interval]);
+
+            if (activeSlides.length > 0) {
+              return (
+                <div className="relative w-full h-auto aspect-[2/1] bg-slate-100 dark:bg-slate-800 rounded-xl overflow-hidden border border-white dark:border-slate-800 shadow-2xl animate-float ring-1 ring-slate-900/5 dark:ring-white/10">
+                  <AnimatePresence mode="wait">
+                    <motion.div
+                      key={currentIndex}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.8 }}
+                      className="absolute inset-0 w-full h-full"
+                    >
+                      {activeSlides[currentIndex].link ? (
+                        <a href={activeSlides[currentIndex].link} target="_blank" rel="noopener noreferrer" className="block w-full h-full cursor-pointer">
+                          <img
+                            src={activeSlides[currentIndex].image}
+                            alt={`Slide ${currentIndex}`}
+                            className="w-full h-full object-cover"
+                          />
+                        </a>
+                      ) : (
+                        <img
+                          src={activeSlides[currentIndex].image}
+                          alt={`Slide ${currentIndex}`}
+                          className="w-full h-full object-cover"
+                        />
+                      )}
+                    </motion.div>
+                  </AnimatePresence>
+
+                  {/* Indicators */}
+                  {activeSlides.length > 1 && (
+                    <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-2 z-10">
+                      {activeSlides.map((_, idx) => (
+                        <button
+                          key={idx}
+                          onClick={() => setCurrentIndex(idx)}
+                          className={`w-2 h-2 md:w-3 md:h-3 rounded-full transition-all ${idx === currentIndex ? 'bg-white scale-125' : 'bg-white/50 hover:bg-white/80'
+                            }`}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            }
+
+            // FALLBACK TO SINGLE IMAGE
+            const heroLink = config['hero_image_link'];
+
+            return heroImage ? (
+              heroLink ? (
+                <a href={heroLink} target="_blank" rel="noopener noreferrer" className="block w-full cursor-pointer transition-transform hover:scale-[1.01] duration-300">
+                  <img
+                    src={heroImage}
+                    alt="Dashboard Preview"
+                    width="1200"
+                    height="600"
+                    decoding="async"
+                    fetchPriority="high"
+                    style={{ aspectRatio: '2/1' }}
+                    className="rounded-xl border border-white dark:border-slate-800 shadow-2xl opacity-90 animate-float w-full h-auto ring-1 ring-slate-900/5 dark:ring-white/10 bg-slate-100 dark:bg-slate-800"
+                  />
+                </a>
+              ) : (
+                <img
+                  src={heroImage}
+                  alt="Dashboard Preview"
+                  width="1200"
+                  height="600"
+                  decoding="async"
+                  fetchPriority="high"
+                  style={{ aspectRatio: '2/1' }}
+                  className="rounded-xl border border-white dark:border-slate-800 shadow-2xl opacity-90 animate-float w-full h-auto ring-1 ring-slate-900/5 dark:ring-white/10 bg-slate-100 dark:bg-slate-800"
+                />
+              )
+            ) : (
+              <div className="w-full h-[300px] md:h-[500px] bg-slate-200 dark:bg-slate-800/50 rounded-xl flex flex-col items-center justify-center border border-slate-300 dark:border-slate-700 animate-float">
+                <ImageOff size={48} className="text-slate-400 mb-2" />
+                <span className="text-slate-500 dark:text-slate-400 font-medium text-lg">Gambar Tidak tersedia</span>
+              </div>
+            );
+          })()}
         </motion.div>
       </div>
     </section >

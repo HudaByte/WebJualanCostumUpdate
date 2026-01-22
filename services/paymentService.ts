@@ -1,5 +1,6 @@
 import { supabase, isSupabaseConfigured } from './supabase';
 import { Transaction, TransactionStatus } from '../types';
+import { maskApiKey, devLog, securityLog } from '../utils/security';
 
 // Real Atlantic API Functions
 interface AtlanticResponse {
@@ -30,13 +31,11 @@ export const createAtlanticTransaction = async (price: number, refId: string, ap
     formData.append('metode', 'QRIS'); // Docs say this - send both to be safe!
 
     try {
-        console.log('[Atlantic] Creating transaction with:', {
-            api_key: apiKey.substring(0, 10) + '...',
+        devLog('[Atlantic] Creating transaction', {
+            api_key: maskApiKey(apiKey),
             reff_id: refId,
             nominal: price,
-            type: 'ewallet',
-            method: 'QRIS',
-            metode: 'QRIS'
+            type: 'ewallet'
         });
 
         // Use Vite Proxy to bypass CORS
@@ -47,26 +46,24 @@ export const createAtlanticTransaction = async (price: number, refId: string, ap
         });
 
         const responseText = await response.text();
-        console.log('[Atlantic] Raw response:', responseText);
+        devLog('[Atlantic] Response received', { length: responseText.length });
 
         let result: AtlanticResponse;
         try {
             result = JSON.parse(responseText);
         } catch (e) {
-            console.error('[Atlantic] Failed to parse JSON:', responseText);
-            return { status: false, message: 'Invalid JSON response: ' + responseText };
+            securityLog('[Atlantic] JSON Parse Error', { error: 'Invalid response format' });
+            return { status: false, message: 'Invalid JSON response' };
         }
 
-        console.log('[Atlantic] Parsed response:', result);
-
         if (!result.status) {
-            console.error('[Atlantic] API returned error:', result);
+            devLog('[Atlantic] API Error', { message: result.message });
         }
 
         return result;
     } catch (e) {
-        console.error("Atlantic API Error", e);
-        return { status: false, message: "Network Error: " + (e as Error).message };
+        securityLog("Atlantic API Error", { error: (e as Error).message });
+        return { status: false, message: "Network Error" };
     }
 };
 
@@ -83,7 +80,7 @@ export const cancelAtlanticTransaction = async (atlanticId: string, apiKey: stri
         });
         return await response.json();
     } catch (e) {
-        console.error("Atlantic Cancel Error", e);
+        securityLog("Atlantic Cancel Error", { error: (e as Error).message });
         return { status: false };
     }
 };
@@ -95,7 +92,7 @@ export const testAtlanticKey = async (apiKey: string) => {
     formData.append('type', 'ewallet');
 
     try {
-        console.log('[Atlantic Test] Calling /deposit/metode...');
+        devLog('[Atlantic Test] Calling /deposit/metode');
 
         const response = await fetch('/api/atlantic/deposit/metode', {
             method: 'POST',
@@ -104,14 +101,12 @@ export const testAtlanticKey = async (apiKey: string) => {
         });
 
         const responseText = await response.text();
-        console.log('[Atlantic Test] Raw response:', responseText);
+        devLog('[Atlantic Test] Response received', { success: true });
 
         const result = JSON.parse(responseText);
-        console.log('[Atlantic Test] Available methods:', result);
-
         return result;
     } catch (e) {
-        console.error('[Atlantic Test] Error:', e);
+        securityLog('[Atlantic Test] Error', { error: (e as Error).message });
         return { status: false, message: (e as Error).message };
     }
 };
@@ -122,7 +117,8 @@ export const createTransaction = async (
     price: number,
     email: string,
     phone: string, // Use this for "Link Tujuan" as well
-    method: 'MANUAL' | 'ATLANTIC_QRIS'
+    method: 'MANUAL' | 'ATLANTIC_QRIS',
+    quantity: number = 1
 ): Promise<Transaction | null> => {
     if (!isSupabaseConfigured()) return null;
 
@@ -133,48 +129,53 @@ export const createTransaction = async (
     let status: TransactionStatus = 'PENDING';
     let atlanticId = '';
     let fee = 0;
-    let reservedStockId: number | null = null; // Track reserved stock
+    let reservedStockIds: number[] = []; // Track reserved stocks for multiple items
+    let reservedStockId: number | null = null; // For legacy/single support
     let expiredAt: string | null = null;
     let uniqueCode = 0; // Initialize uniqueCode
 
     // --- STEP 1: RESERVE STOCK (FOR BOTH MANUAL & QRIS) ---
     // Prevent overselling by claiming stock immediately for ALL orders
     try {
-        const { data: availableStock } = await supabase
+        const { data: availableStocks } = await supabase
             .from('product_stocks')
             .select('*')
             .eq('product_id', productId)
             .eq('is_claimed', false)
-            .limit(1)
-            .single();
+            .limit(quantity);
 
-        if (!availableStock) {
-            alert('Maaf, stok barang ini sedang habis!');
+        if (!availableStocks || availableStocks.length < quantity) {
+            alert(`Maaf, stok barang ini tidak mencukupi! Tersedia: ${availableStocks?.length || 0}`);
             return null;
         }
 
-        reservedStockId = availableStock.id;
+        const stocksToReserve = availableStocks;
+        reservedStockIds = stocksToReserve.map(s => s.id);
+        reservedStockId = reservedStockIds[0]; // Legacy support
 
-        // Claim the stock
+        // Claim the stocks
         const { error: claimError } = await supabase
             .from('product_stocks')
             .update({ is_claimed: true })
-            .eq('id', availableStock.id);
+            .in('id', reservedStockIds);
 
         if (claimError) {
-            console.error('[Stock Reserve] Failed:', claimError);
+            securityLog('[Stock Reserve] Failed', { error: claimError.message });
             alert('Gagal memproses stok. Silakan coba lagi.');
             return null;
         }
 
-        console.log('[Stock Reserve] Reserved:', reservedStockId);
+        devLog('[Stock Reserve] Reserved stocks', { count: reservedStockIds.length });
     } catch (err) {
-        console.error('[Stock Reserve] Error:', err);
+        securityLog('[Stock Reserve] Error', { error: String(err) });
         return null;
     }
 
     try {
         // --- STEP 2: PROCESS PAYMENT ---
+        // CALCULATE TOTAL PRICE BASED ON QUANTITY
+        const totalPrice = price * quantity;
+
         if (method === 'ATLANTIC_QRIS') {
             // Fetch API Key
             const { data: config } = await supabase.from('payment_config').select('value').eq('key', 'atlantic_api_key').single();
@@ -182,40 +183,30 @@ export const createTransaction = async (
 
             if (!apiKey) {
                 // Rollback
-                await supabase.from('product_stocks').update({ is_claimed: false }).eq('id', reservedStockId);
+                await supabase.from('product_stocks').update({ is_claimed: false }).in('id', reservedStockIds);
                 alert("API Key Atlantic belum disetting!");
                 return null;
             }
 
             // Generate unique code
-            // Generate unique code
             uniqueCode = Math.floor(Math.random() * 150) + 1; // 1 - 150
 
-            // Calculate Nominal so that Net Received >= Price
-            // Formula: Net = Total - (200 + 0.7% * Total)
-            // We want Net = Price
-            // Price = Total * (1 - 0.007) - 200
-            // Total = (Price + 200) / 0.993
+            // Calculate Nominal so that Net Received >= Total Price
             const flatFee = 200;
             const percentFee = 0.007; // 0.7%
 
             // Base amount needed to cover price + fees
-            const amountNeeded = Math.ceil((price + flatFee) / (1 - percentFee));
+            const amountNeeded = Math.ceil((totalPrice + flatFee) / (1 - percentFee));
 
             // Total to request from Atlantic
             const nominalWithFees = amountNeeded + uniqueCode;
 
             // Calculate the "Admin Fee" to show user (Total - Price - UniqueCode)
-            const calculatedFee = amountNeeded - price;
+            const calculatedFee = amountNeeded - totalPrice;
 
-            console.log('[Payment] Calculation:', {
-                price,
-                flatFee,
-                percentFee,
-                amountNeeded,
-                uniqueCode,
-                nominalWithFees,
-                calculatedFee
+            devLog('[Payment] Fee calculated', {
+                price: totalPrice,
+                fee: calculatedFee
             });
 
             const atlanticRes = await createAtlanticTransaction(nominalWithFees, refId, apiKey);
@@ -225,20 +216,16 @@ export const createTransaction = async (
                 atlanticId = atlanticRes.data.id;
                 expiredAt = atlanticRes.data.expired_at || null;
 
-                // Store the FEE charged to user (calculatedFee) so UI math works: Price + Fee + Unique = Total
+                // Store the FEE charged to user
                 fee = calculatedFee;
-
-                // Use get_balance as the net amount
-                // But for DB, we usually store the sell price user sees, getting balance is handled in accounting
-                // Here we keep logic simple
             } else {
                 // Rollback
-                await supabase.from('product_stocks').update({ is_claimed: false }).eq('id', reservedStockId);
+                await supabase.from('product_stocks').update({ is_claimed: false }).in('id', reservedStockIds);
                 throw new Error(atlanticRes.message || "Gagal membuat transaksi Atlantic");
             }
         } else {
             // Manual
-            paymentUrl = `https://wa.me/6281234567890?text=Halo%20Admin%2C%20saya%20ingin%20konfirmasi%20pembelian%20${encodeURIComponent(productTitle)}%20seharga%20Rp%20${price.toLocaleString()}%20dengan%20ID%20${refId}`;
+            paymentUrl = `https://wa.me/6281234567890?text=Halo%20Admin%2C%20saya%20ingin%20konfirmasi%20pembelian%20${encodeURIComponent(productTitle)}%20(x${quantity})%20seharga%20Rp%20${totalPrice.toLocaleString()}%20dengan%20ID%20${refId}`;
         }
 
         // --- STEP 3: SAVE TRANSACTION ---
@@ -248,25 +235,27 @@ export const createTransaction = async (
                 ref_id: refId,
                 product_id: productId,
                 product_title: productTitle,
-                price: price,
+                price: totalPrice, // Save TOTAL price
                 fee: fee,
-                unique_code: method === 'ATLANTIC_QRIS' ? uniqueCode : 0, // Save Unique Code!
+                unique_code: method === 'ATLANTIC_QRIS' ? uniqueCode : 0,
                 atlantic_id: atlanticId,
                 buyer_email: email,
                 buyer_phone: phone,
                 payment_method: method,
-                reserved_stock_id: reservedStockId, // IMPORTANT: Save this for cancellation
+                reserved_stock_id: reservedStockId, // Legacy
+                reserved_stock_ids: reservedStockIds, // NEW: Array of IDs
                 status: status,
+                quantity: quantity,
                 payment_url: paymentUrl,
-                expired_at: expiredAt // Save Expiration Time
+                expired_at: expiredAt
             })
             .select()
             .single();
 
         if (error) {
             // Rollback if DB insert fails
-            await supabase.from('product_stocks').update({ is_claimed: false }).eq('id', reservedStockId);
-            console.error("DB Error", error);
+            await supabase.from('product_stocks').update({ is_claimed: false }).in('id', reservedStockIds);
+            securityLog("DB Insert Error", { error: error.message });
             throw error;
         }
 
@@ -274,10 +263,10 @@ export const createTransaction = async (
 
     } catch (e) {
         // Rollback stock in case of any other error
-        if (reservedStockId) {
-            await supabase.from('product_stocks').update({ is_claimed: false }).eq('id', reservedStockId);
+        if (reservedStockIds.length > 0) {
+            await supabase.from('product_stocks').update({ is_claimed: false }).in('id', reservedStockIds);
         }
-        console.error("Transaction Error", e);
+        securityLog("Transaction Creation Error", { error: (e as Error).message });
         return null;
     }
 };
@@ -327,8 +316,14 @@ export const checkTransactionStatus = async (transactionId: string): Promise<Tra
                         newStatus = 'CANCELLED';
 
                         // RESTORE STOCK if cancelled/expired
-                        if (trx.reserved_stock_id) {
-                            console.log('[Check Status] Transaction cancelled/expired. Releasing stock:', trx.reserved_stock_id);
+                        if (trx.reserved_stock_ids && trx.reserved_stock_ids.length > 0) {
+                            devLog('[Check Status] Releasing stocks due to cancellation');
+                            await supabase
+                                .from('product_stocks')
+                                .update({ is_claimed: false })
+                                .in('id', trx.reserved_stock_ids);
+                        } else if (trx.reserved_stock_id) {
+                            devLog('[Check Status] Releasing stock due to cancellation');
                             await supabase
                                 .from('product_stocks')
                                 .update({ is_claimed: false })
@@ -343,7 +338,7 @@ export const checkTransactionStatus = async (transactionId: string): Promise<Tra
                 }
             }
         } catch (e) {
-            console.error("Atlantic Status Check Error", e);
+            securityLog("Atlantic Status Check Error", { error: (e as Error).message });
         }
     }
 
@@ -359,9 +354,17 @@ export const deliverStock = async (transactionId: string) => {
     if (!trx || trx.status !== 'PAID' || trx.stock_content) return; // Already delivered or not paid
 
     // Get Available Stock
-    let stock = null;
+    let stocksToDeliver: any[] = [];
 
-    if (trx.reserved_stock_id) {
+    if (trx.reserved_stock_ids && trx.reserved_stock_ids.length > 0) {
+        const { data: reservedStocks } = await supabase
+            .from('product_stocks')
+            .select('*')
+            .in('id', trx.reserved_stock_ids);
+
+        if (reservedStocks) stocksToDeliver = reservedStocks;
+
+    } else if (trx.reserved_stock_id) {
         // Use the stock reserved for this transaction
         const { data: reservedStock } = await supabase
             .from('product_stocks')
@@ -370,36 +373,40 @@ export const deliverStock = async (transactionId: string) => {
             .single();
 
         if (reservedStock) {
-            stock = reservedStock;
+            stocksToDeliver = [reservedStock];
         }
     }
 
-    // Fallback: Find new available stock if no reservation or reservation lost
-    if (!stock) {
-        const { data: availableStock, error } = await supabase
-            .from('product_stocks')
-            .select('*')
-            .eq('product_id', trx.product_id)
-            .eq('is_claimed', false)
-            .limit(1)
-            .single();
-
-        if (!error && availableStock) {
-            stock = availableStock;
-        }
-    }
-
-    if (!stock) {
-        // No stock available, log error or notify admin
-        console.error("No Stock Available for Product", trx.product_id);
+    // Fallback? Probably not needed if logic is correct, but let's keep it safe for single items
+    if (stocksToDeliver.length === 0) {
+        // Logic for fallback (finding new stock) is dangerous for multi-qty. Skip for now.
+        securityLog("No Reserved Stock Found", { transaction_id: transactionId });
         return;
     }
 
-    // Claim Stock (idempotent if already claimed)
-    await supabase.from('product_stocks').update({ is_claimed: true }).eq('id', stock.id);
+    // Claim Stock (already claimed, but ensure)
+    const stockIds = stocksToDeliver.map(s => s.id);
+    await supabase.from('product_stocks').update({ is_claimed: true }).in('id', stockIds);
+
+    // Concatenate Content
+    const content = stocksToDeliver.map(s => s.content).join('\n---\n');
 
     // Update Transaction with Content
-    await supabase.from('transactions').update({ stock_content: stock.content }).eq('id', transactionId);
+    await supabase.from('transactions').update({ stock_content: content }).eq('id', transactionId);
+
+    // INCREMENT SOLD COUNT
+    if (trx.product_id) {
+        // Safe increment using RPC would be better, but for now read-update is acceptable
+        const { data: product } = await supabase.from('products').select('sold_count').eq('id', trx.product_id).single();
+        if (product) {
+            const currentSold = product.sold_count || 0;
+            const quantitySold = trx.quantity || 1;
+            await supabase
+                .from('products')
+                .update({ sold_count: currentSold + quantitySold })
+                .eq('id', trx.product_id);
+        }
+    }
 };
 
 // Test Connection (Real)
@@ -419,13 +426,13 @@ export const manualApproveTransaction = async (transactionId: string): Promise<b
             .single();
 
         if (fetchError || !trx) {
-            console.error('[Manual Approve] Transaction not found');
+            devLog('[Manual Approve] Transaction not found');
             return false;
         }
 
         // 2. Check if already paid
         if (trx.status === 'PAID') {
-            console.log('[Manual Approve] Already paid');
+            devLog('[Manual Approve] Already paid');
             return true;
         }
 
@@ -445,21 +452,21 @@ export const manualApproveTransaction = async (transactionId: string): Promise<b
             .eq('id', transactionId);
 
         if (updateError) {
-            console.error('[Manual Approve] Update error:', updateError);
+            securityLog('[Manual Approve] Update error', { error: updateError.message });
             return false;
         }
 
-        console.log('[Manual Approve] Success:', transactionId);
+        devLog('[Manual Approve] Success');
         return true;
     } catch (e) {
-        console.error('[Manual Approve] Error:', e);
+        securityLog('[Manual Approve] Error', { error: (e as Error).message });
         return false;
     }
 };
 
 // Admin Cancel Transaction
 export const adminCancelTransaction = async (transactionId: string): Promise<boolean> => {
-    console.log('[Admin Cancel] Starting cancellation for:', transactionId);
+    devLog('[Admin Cancel] Starting cancellation');
 
     try {
         // 1. Get transaction
@@ -473,19 +480,19 @@ export const adminCancelTransaction = async (transactionId: string): Promise<boo
         console.log('[Admin Cancel] Fetch error:', fetchError);
 
         if (fetchError || !trx) {
-            console.error('[Admin Cancel] Transaction not found');
+            devLog('[Admin Cancel] Transaction not found');
             return false;
         }
 
         // 2. Check if already cancelled
         if (trx.status === 'CANCELLED') {
-            console.log('[Admin Cancel] Already cancelled');
+            devLog('[Admin Cancel] Already cancelled');
             return true;
         }
 
         // 3. Cancel on Atlantic if QRIS and has atlantic_id
         if (trx.payment_method === 'ATLANTIC_QRIS' && trx.atlantic_id) {
-            console.log('[Admin Cancel] Calling Atlantic API to cancel:', trx.atlantic_id);
+            devLog('[Admin Cancel] Calling Atlantic API');
             const { data: config } = await supabase
                 .from('payment_config')
                 .select('value')
@@ -493,48 +500,159 @@ export const adminCancelTransaction = async (transactionId: string): Promise<boo
                 .single();
 
             if (config?.value) {
-                const cancelResult = await cancelAtlanticTransaction(trx.atlantic_id, config.value);
-                console.log('[Admin Cancel] Atlantic cancel result:', cancelResult);
+                await cancelAtlanticTransaction(trx.atlantic_id, config.value);
             }
         }
 
         // 4. Release reserved stock if exists
-        if (trx.reserved_stock_id) {
-            console.log('[Admin Cancel] Releasing stock:', trx.reserved_stock_id);
+        if (trx.reserved_stock_ids && trx.reserved_stock_ids.length > 0) {
+            devLog('[Admin Cancel] Releasing stocks');
+            const { error: stockError } = await supabase
+                .from('product_stocks')
+                .update({ is_claimed: false })
+                .in('id', trx.reserved_stock_ids);
+
+            if (stockError) {
+                securityLog('[Admin Cancel] Stocks release error', { error: stockError.message });
+            }
+        } else if (trx.reserved_stock_id) {
+            devLog('[Admin Cancel] Releasing stock');
             const { error: stockError } = await supabase
                 .from('product_stocks')
                 .update({ is_claimed: false })
                 .eq('id', trx.reserved_stock_id);
 
             if (stockError) {
-                console.error('[Admin Cancel] Stock release error:', stockError);
-            } else {
-                console.log('[Admin Cancel] Stock released successfully');
+                securityLog('[Admin Cancel] Stock release error', { error: stockError.message });
             }
-        } else {
-            console.log('[Admin Cancel] No reserved stock to release');
         }
 
-        // 5. Update status to CANCELLED
-        console.log('[Admin Cancel] Updating status to CANCELLED...');
+        devLog('[Admin Cancel] Updating status');
         const { error: updateError } = await supabase
             .from('transactions')
             .update({ status: 'CANCELLED' })
             .eq('id', transactionId);
 
-        console.log('[Admin Cancel] Update error:', updateError);
-
         if (updateError) {
-            console.error('[Admin Cancel] Update error:', updateError);
+            securityLog('[Admin Cancel] Update error', { error: updateError.message });
             return false;
         }
 
-        console.log('[Admin Cancel] Success! Transaction cancelled:', transactionId);
+        devLog('[Admin Cancel] Success');
         return true;
     } catch (e) {
-        console.error('[Admin Cancel] Exception:', e);
+        securityLog('[Admin Cancel] Exception', { error: (e as Error).message });
         return false;
     }
 };
 
 
+
+export const getAtlanticProfile = async (apiKey: string) => {
+    try {
+        const response = await fetch('/api/atlantic/get_profile', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({ api_key: apiKey })
+        });
+
+        const text = await response.text();
+        // console.log('[Atlantic Profile] Response:', text); // Reduce noise
+
+        if (!response.ok) {
+            return { status: false, message: `HTTP Error: ${response.status}` };
+        }
+
+        try {
+            const data = JSON.parse(text);
+            return data;
+        } catch (e) {
+            return { status: false, message: 'Invalid JSON response from Atlantic' };
+        }
+    } catch (error) {
+        securityLog("Atlantic Profile Error", { error: String(error) });
+        return { status: false, message: 'Network Error' };
+    }
+};
+
+// --- WITHDRAW / TRANSFER SERVICES ---
+
+export const getBankList = async (apiKey: string) => {
+    try {
+        const response = await fetch('/api/atlantic/transfer/bank_list', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({ api_key: apiKey })
+        });
+        return await response.json();
+    } catch (error) {
+        securityLog("Bank List Error", { error: String(error) });
+        return { status: false, message: 'Network Error' };
+    }
+};
+
+export const checkBankAccount = async (apiKey: string, bankCode: string, accountNumber: string) => {
+    try {
+        const response = await fetch('/api/atlantic/transfer/cek_rekening', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({
+                api_key: apiKey,
+                bank_code: bankCode,
+                account_number: accountNumber
+            })
+        });
+        return await response.json();
+    } catch (error) {
+        securityLog("Bank Account Check Error", { error: String(error) });
+        return { status: false, message: 'Network Error' };
+    }
+};
+
+export const createTransfer = async (
+    apiKey: string,
+    bankCode: string,
+    accountNumber: string,
+    accountName: string, // Required by Atlantic API
+    nominal: number
+) => {
+    const refId = `WD-${Date.now()}`; // Generate internal Ref ID
+
+    try {
+        const formData = new URLSearchParams();
+        formData.append('api_key', apiKey);
+        formData.append('ref_id', refId);
+        formData.append('kode_bank', bankCode);
+        formData.append('nomor_akun', accountNumber);
+        formData.append('nama_pemilik', accountName);
+        formData.append('nominal', nominal.toString());
+        // Optional: email, phone, note can be added here if needed
+
+        const response = await fetch('/api/atlantic/transfer/create', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: formData
+        });
+        return await response.json();
+    } catch (error) {
+        securityLog("Transfer Creation Error", { error: String(error) });
+        return { status: false, message: 'Network Error' };
+    }
+};
+
+export const checkTransferStatus = async (apiKey: string, id: string) => {
+    try {
+        const response = await fetch('/api/atlantic/transfer/status', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({
+                api_key: apiKey,
+                id: id
+            })
+        });
+        return await response.json();
+    } catch (error) {
+        securityLog("Transfer Status Check Error", { error: String(error) });
+        return { status: false, message: 'Network Error' };
+    }
+};

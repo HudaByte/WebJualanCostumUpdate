@@ -41,11 +41,29 @@ const StockManager: React.FC<StockManagerProps> = ({ product, onBack }) => {
     const handleAddStocks = async () => {
         if (!stockInput.trim()) return;
         setLoading(true);
-        const newItem = stockInput.trim();
+
         try {
-            await addProductStocks(product.id, [newItem]);
+            // Parse input: ONLY support pipe (|) as delimiter
+            const rawInput = stockInput.trim();
+
+            // Split by pipe and filter empty strings
+            const items = rawInput
+                .split('|')
+                .map(item => item.trim())
+                .filter(item => item.length > 0);
+
+            if (items.length === 0) {
+                alert('Tidak ada stok valid untuk ditambahkan');
+                setLoading(false);
+                return;
+            }
+
+            // Add all items
+            await addProductStocks(product.id, items);
             setStockInput('');
             await fetchStockData();
+
+            alert(`Berhasil menambahkan ${items.length} stok!`);
         } catch (e) {
             alert('Gagal menambah stok');
         }
@@ -138,7 +156,7 @@ const StockManager: React.FC<StockManagerProps> = ({ product, onBack }) => {
                     onChange={(e) => setStockInput(e.target.value)}
                 ></textarea>
                 <div className="flex justify-between items-center">
-                    <p className="text-xs text-slate-400">Tips: Satu baris satu stok jika input banyak sekaligus.</p>
+                    <p className="text-xs text-slate-400">💡 Tips: Pisahkan dengan <strong className="text-blue-600">|</strong> (pipe). Contoh: <code className="bg-slate-100 dark:bg-slate-800 px-1 rounded">stock1|stock2|stock3</code></p>
                     <button
                         onClick={handleAddStocks}
                         disabled={!stockInput.trim() || loading}

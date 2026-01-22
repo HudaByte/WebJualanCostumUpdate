@@ -25,6 +25,13 @@ const MOCK_CONFIG: SiteConfig[] = [
   { key: 'hero_btn_primary', value: '' },
   { key: 'hero_btn_secondary', value: '' },
   { key: 'hero_image_url', value: '' },
+  { key: 'hero_image_link', value: '' }, // Link for the single hero image
+  { key: 'hero_image_link', value: '' }, // Link for the single hero image
+  { key: 'hero_slides', value: '' }, // JSON: [{image, link}]
+  { key: 'hero_slides_interval', value: '5000' },
+
+  // Store Status
+  { key: 'store_mode', value: 'open' }, // open, closed, maintenance, restocking
 
   // Products Section
   { key: 'products_title', value: '' },
@@ -56,7 +63,11 @@ const MOCK_CONFIG: SiteConfig[] = [
   { key: 'detail_feature_1_title', value: '' },
   { key: 'detail_feature_1_desc', value: '' },
   { key: 'detail_feature_2_title', value: '' },
+  { key: 'detail_feature_2_title', value: '' },
   { key: 'detail_feature_2_desc', value: '' },
+
+  // Store Closed
+  { key: 'store_closed_contact_link', value: '' },
 ];
 
 // --- STORAGE OPERATIONS ---

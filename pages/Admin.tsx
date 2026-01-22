@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Lock, Menu, Plus, Save, Trash2, X, Edit2 } from 'lucide-react';
 import { getProducts, getFreebies, getSiteConfig, getSocialLinks, getTransactions, getPaymentConfig } from '../services/dataService';
 import { Product, Freebie, SocialLink, Transaction } from '../types';
+import PageTransition from '../components/PageTransition';
 
 // Components
 import Sidebar from '../components/admin/Sidebar';
@@ -113,54 +114,56 @@ const Admin: React.FC = () => {
 
   // DASHBOARD LAYOUT
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white transition-colors duration-300">
-      <Sidebar
-        activeTab={activeTab === 'stock_details' ? 'products' : activeTab}
-        setActiveTab={setActiveTab}
-        onLogout={handleLogout}
-        isOpen={sidebarOpen}
-        setIsOpen={setSidebarOpen}
-      />
+    <PageTransition>
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white transition-colors duration-300">
+        <Sidebar
+          activeTab={activeTab === 'stock_details' ? 'products' : activeTab}
+          setActiveTab={setActiveTab}
+          onLogout={handleLogout}
+          isOpen={sidebarOpen}
+          setIsOpen={setSidebarOpen}
+        />
 
-      <div className="md:ml-64 min-h-screen p-4 md:p-8">
-        {/* Mobile Header */}
-        <div className="md:hidden flex justify-between items-center mb-6">
-          <h1 className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-cyan-500">Admin Panel</h1>
-          <button onClick={() => setSidebarOpen(true)} className="p-2 bg-white dark:bg-slate-800 rounded-lg shadow-sm text-slate-600 dark:text-slate-300">
-            <Menu size={24} />
-          </button>
+        <div className="md:ml-64 min-h-screen p-4 md:p-8">
+          {/* Mobile Header */}
+          <div className="md:hidden flex justify-between items-center mb-6">
+            <h1 className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-cyan-500">Admin Panel</h1>
+            <button onClick={() => setSidebarOpen(true)} className="p-2 bg-white dark:bg-slate-800 rounded-lg shadow-sm text-slate-600 dark:text-slate-300">
+              <Menu size={24} />
+            </button>
+          </div>
+
+          {/* Content Area */}
+          <motion.div
+            key={activeTab}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+            className={activeTab === 'stock_details' ? "" : "bg-white dark:bg-slate-900 rounded-xl shadow-xl dark:shadow-none border border-slate-200 dark:border-slate-800 p-6 min-h-[85vh]"}
+          >
+            {loading && activeTab !== 'stock_details' ? (
+              <div className="flex h-64 items-center justify-center text-slate-500 font-bold text-lg">
+                Loading data...
+              </div>
+            ) : (
+              <>
+                {activeTab === 'dashboard' && <DashboardHome transactions={transactions} products={products} />}
+                {activeTab === 'products' && <ProductsManager products={products} fetchData={fetchData} onStockClick={handleOpenStock} />}
+                {activeTab === 'stock_details' && selectedProductForStock && (
+                  <StockManager product={selectedProductForStock} onBack={handleBackToProducts} />
+                )}
+                {activeTab === 'freebies' && <FreebiesManager freebies={freebies} fetchData={fetchData} />}
+                {activeTab === 'socials' && <SocialsManager socials={socials} fetchData={fetchData} />}
+                {activeTab === 'seo' && <SeoManager config={config} setConfig={setConfig} fetchData={fetchData} />}
+                {activeTab === 'config' && <ConfigManager config={config} setConfig={setConfig} fetchData={fetchData} />}
+                {activeTab === 'orders' && <OrdersManager transactions={transactions} fetchData={fetchData} />}
+                {activeTab === 'payment' && <PaymentManager paymentConfig={paymentConfig} setPaymentConfig={setPaymentConfig} />}
+              </>
+            )}
+          </motion.div>
         </div>
-
-        {/* Content Area */}
-        <motion.div
-          key={activeTab}
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
-          className={activeTab === 'stock_details' ? "" : "bg-white dark:bg-slate-900 rounded-xl shadow-xl dark:shadow-none border border-slate-200 dark:border-slate-800 p-6 min-h-[85vh]"}
-        >
-          {loading && activeTab !== 'stock_details' ? (
-            <div className="flex h-64 items-center justify-center text-slate-500 font-bold text-lg">
-              Loading data...
-            </div>
-          ) : (
-            <>
-              {activeTab === 'dashboard' && <DashboardHome transactions={transactions} products={products} />}
-              {activeTab === 'products' && <ProductsManager products={products} fetchData={fetchData} onStockClick={handleOpenStock} />}
-              {activeTab === 'stock_details' && selectedProductForStock && (
-                <StockManager product={selectedProductForStock} onBack={handleBackToProducts} />
-              )}
-              {activeTab === 'freebies' && <FreebiesManager freebies={freebies} fetchData={fetchData} />}
-              {activeTab === 'socials' && <SocialsManager socials={socials} fetchData={fetchData} />}
-              {activeTab === 'seo' && <SeoManager config={config} setConfig={setConfig} fetchData={fetchData} />}
-              {activeTab === 'config' && <ConfigManager config={config} setConfig={setConfig} fetchData={fetchData} />}
-              {activeTab === 'orders' && <OrdersManager transactions={transactions} fetchData={fetchData} />}
-              {activeTab === 'payment' && <PaymentManager paymentConfig={paymentConfig} setPaymentConfig={setPaymentConfig} />}
-            </>
-          )}
-        </motion.div>
       </div>
-    </div>
+    </PageTransition>
   );
 };
 

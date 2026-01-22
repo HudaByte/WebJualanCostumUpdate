@@ -24,10 +24,16 @@ const ProductsManager: React.FC<ProductsManagerProps> = ({ products, fetchData, 
         setLoading(true);
 
         try {
-            if (editingProduct.id) {
-                await updateProduct(editingProduct.id, editingProduct);
+            // Ensure link has a value for AUTO (Hidden field)
+            const submissionData = { ...editingProduct };
+            if (!submissionData.payment_type || submissionData.payment_type === 'AUTO') {
+                submissionData.link = submissionData.link || '-';
+            }
+
+            if (submissionData.id) {
+                await updateProduct(submissionData.id, submissionData);
             } else {
-                await createProduct(editingProduct as any);
+                await createProduct(submissionData as any);
             }
             setEditingProduct(null);
             fetchData();
@@ -86,6 +92,12 @@ const ProductsManager: React.FC<ProductsManagerProps> = ({ products, fetchData, 
                             <input className="bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 p-2 rounded text-slate-900 dark:text-white w-full focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Contoh: 150000" type="number" value={editingProduct.price || ''} onChange={e => setEditingProduct({ ...editingProduct, price: parseInt(e.target.value) })} required />
                         </div>
 
+                        {/* Sold Count (Editable) */}
+                        <div>
+                            <label className="block text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">Terjual</label>
+                            <input className="bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 p-2 rounded text-slate-900 dark:text-white w-full focus:ring-2 focus:ring-blue-500 outline-none" placeholder="0" type="number" value={editingProduct.sold_count ?? 0} onChange={e => setEditingProduct({ ...editingProduct, sold_count: parseInt(e.target.value) })} />
+                        </div>
+
                         {/* Payment Type */}
                         <div>
                             <label className="block text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">Metode Pembayaran</label>
@@ -99,6 +111,14 @@ const ProductsManager: React.FC<ProductsManagerProps> = ({ products, fetchData, 
                             </select>
                             <p className="text-xs text-slate-400 mt-1">Manual: User akan diarahkan ke WA Admin. Otomatis: User scan QRIS.</p>
                         </div>
+
+                        {/* Manual Stock (Only if Manual) */}
+                        {editingProduct.payment_type === 'MANUAL' && (
+                            <div>
+                                <label className="block text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">Stok Manual</label>
+                                <input className="bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 p-2 rounded text-slate-900 dark:text-white w-full focus:ring-2 focus:ring-blue-500 outline-none" placeholder="100" type="number" value={editingProduct.manual_stock ?? 100} onChange={e => setEditingProduct({ ...editingProduct, manual_stock: parseInt(e.target.value) })} />
+                            </div>
+                        )}
 
                         {/* Original Price (Coret) */}
                         <div>
@@ -117,10 +137,12 @@ const ProductsManager: React.FC<ProductsManagerProps> = ({ products, fetchData, 
                             </div>
                         </div>
 
-                        <div className="md:col-span-2">
-                            <label className="block text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">Link Tujuan</label>
-                            <input className="bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 p-2 rounded text-slate-900 dark:text-white w-full focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Link Tujuan" value={editingProduct.link || ''} onChange={e => setEditingProduct({ ...editingProduct, link: e.target.value })} required />
-                        </div>
+                        {editingProduct.payment_type === 'MANUAL' && (
+                            <div className="md:col-span-2">
+                                <label className="block text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">Link Tujuan</label>
+                                <input className="bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 p-2 rounded text-slate-900 dark:text-white w-full focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Link Tujuan" value={editingProduct.link || ''} onChange={e => setEditingProduct({ ...editingProduct, link: e.target.value })} required />
+                            </div>
+                        )}
 
                         <div className="md:col-span-2">
                             <label className="block text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">Teks Tombol</label>

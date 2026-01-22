@@ -59,7 +59,23 @@ INSERT INTO site_config (key, value) VALUES
 -- Social Proof / Fake Purchase Notification
 ('fake_purchase_enabled', 'true'), -- ON/OFF Feature
 ('fake_purchase_delay', '20'), -- Delay in seconds
-('fake_purchase_names', 'Budi Santoso\nSiti Aminah\nRizky Ramadhan\nDewi Lestari\nJoko Anwar\nPutri Ayudya\nKevin Sanjaya\nAnisa Rahma');
+('fake_purchase_names', 'Budi Santoso\nSiti Aminah\nRizky Ramadhan\nDewi Lestari\nJoko Anwar\nPutri Ayudya\nKevin Sanjaya\nAnisa Rahma'),
+
+-- Pop-up Promo/Notifikasi (NEW)
+('popup_enabled', 'false'), -- Enable/Disable popup
+('popup_image_url', ''), -- URL gambar popup (optional)
+('popup_text', ''), -- Teks popup (alternatif gambar)
+('popup_link', ''), -- Optional link ketika gambar/teks diklik
+('popup_delay', '30'), -- Delay dalam detik sebelum popup muncul lagi
+('popup_repeat_mode', 'false'), -- true = repeat, false = sekali tampil
+
+-- Store Operating Hours (NEW)
+('store_enabled', 'true'), -- Manual override: 'true' = open, 'false' = closed
+('store_auto_schedule', 'false'), -- Enable auto schedule based on time
+('store_hours_open', '09:00'), -- Jam buka (24h format)
+('store_hours_close', '21:00'), -- Jam tutup
+('store_days', '1,2,3,4,5,6,7'), -- Hari buka (1=Senin, 7=Minggu)
+('store_closed_message', 'Maaf, toko sedang tutup. Silakan kembali saat jam operasional.'); -- Custom closed message
 
 -- Create Products Table
 CREATE TABLE products (
@@ -240,6 +256,10 @@ ALTER TABLE transactions ADD COLUMN IF NOT EXISTS unique_code INTEGER DEFAULT 0;
 ALTER TABLE transactions ADD COLUMN IF NOT EXISTS invoice_url TEXT;
 ALTER TABLE transactions ADD COLUMN IF NOT EXISTS reserved_stock_id BIGINT REFERENCES product_stocks(id);
 ALTER TABLE transactions ADD COLUMN IF NOT EXISTS expired_at TIMESTAMP WITH TIME ZONE;
+ALTER TABLE products ADD COLUMN IF NOT EXISTS payment_type TEXT DEFAULT 'AUTO';
+ALTER TABLE products ADD COLUMN IF NOT EXISTS button_text TEXT DEFAULT 'Beli Sekarang';
+ALTER TABLE products ADD COLUMN IF NOT EXISTS sold_count INTEGER DEFAULT 0;
+ALTER TABLE products ADD COLUMN IF NOT EXISTS manual_stock INTEGER DEFAULT 100;
 
 -- RLS Policies for New Tables
 ALTER TABLE product_stocks ENABLE ROW LEVEL SECURITY;
