@@ -92,7 +92,7 @@ const Maintenance: React.FC<MaintenanceProps> = ({
                     >
                         <div className="w-full h-full rounded-full bg-slate-900 flex items-center justify-center overflow-hidden border-4 border-slate-900">
                             {logoUrl ? (
-                                <img src={logoUrl} alt={brandName} className="w-full h-full object-cover" />
+                                <img src={logoUrl} alt={brandName} className="w-full h-full object-cover" loading="lazy" />
                             ) : (
                                 <ShoppingBag className="text-white w-10 h-10" />
                             )}

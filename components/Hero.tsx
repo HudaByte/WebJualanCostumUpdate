@@ -138,6 +138,8 @@ const Hero: React.FC = () => {
                           src={activeSlides[currentIndex].image}
                           alt={`Slide ${currentIndex}`}
                           className="w-full h-full object-cover"
+                          loading="lazy"
+                          decoding="async"
                         />
                       )}
                     </motion.div>
