@@ -103,8 +103,8 @@ const PurchaseNotification: React.FC = () => {
           animate={{ opacity: 1, x: 0, scale: 1 }}
           exit={{ opacity: 0, x: -50, scale: 0.95 }}
           transition={{ duration: 0.4, ease: "easeOut" }}
-          className="fixed bottom-4 left-4 z-40 max-w-[calc(100vw-2rem)] sm:max-w-sm bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-100 dark:border-slate-700 p-3 flex items-center gap-3 pr-8 will-change-transform"
-          style={{ transform: "translate3d(0,0,0)" }}
+          className="fixed bottom-4 left-4 z-40 max-w-[calc(100vw-2rem)] sm:max-w-sm bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-100 dark:border-slate-700 p-3 flex items-center gap-3 pr-8"
+          style={{ transform: "translate3d(0,0,0)", backfaceVisibility: "hidden" }}
         >
           <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-slate-100 overflow-hidden flex-shrink-0">
             <img

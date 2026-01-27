@@ -108,7 +108,7 @@ const Products: React.FC = () => {
                 whileInView="visible"
                 viewport={{ once: true, margin: "0px 0px -50px 0px" }}
                 variants={cardVariants}
-                className="group relative bg-white dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-xl sm:rounded-2xl overflow-hidden hover:border-blue-200 dark:hover:border-blue-800 transition-colors duration-300 hover:shadow-lg flex flex-col will-change-transform"
+                className="group relative bg-white dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-xl sm:rounded-2xl overflow-hidden hover:border-blue-200 dark:hover:border-blue-800 transition-colors duration-300 hover:shadow-lg flex flex-col"
               >
                 <Link to={`/product/${product.id}`} className="block">
                   <div className="aspect-[4/3] overflow-hidden bg-slate-100 dark:bg-slate-900 relative">

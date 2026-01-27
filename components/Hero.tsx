@@ -35,15 +35,15 @@ const Hero: React.FC = () => {
   return (
     <section id="home" className="relative min-h-screen flex items-center justify-center overflow-hidden pt-28 pb-12 md:pt-20 md:pb-0 bg-slate-50 dark:bg-slate-950 transition-colors duration-300 content-visibility-auto">
       {/* Background Glows - Reduced blur intensity for mobile performance */}
-      <div className="absolute top-0 left-1/4 w-64 h-64 md:w-96 md:h-96 bg-blue-400/20 dark:bg-blue-600/10 rounded-full blur-[30px] md:blur-[100px] opacity-60 animate-pulse-slow gpu-accel pointer-events-none"></div>
-      <div className="absolute bottom-0 right-1/4 w-64 h-64 md:w-96 md:h-96 bg-cyan-400/20 dark:bg-cyan-600/10 rounded-full blur-[30px] md:blur-[100px] opacity-60 pointer-events-none gpu-accel"></div>
+      <div className="absolute top-0 left-1/4 w-64 h-64 md:w-96 md:h-96 bg-blue-400/20 dark:bg-blue-600/10 rounded-full blur-[40px] md:blur-[100px] opacity-60 animate-pulse-slow gpu-accel pointer-events-none" style={{ transform: 'translateZ(0)' }}></div>
+      <div className="absolute bottom-0 right-1/4 w-64 h-64 md:w-96 md:h-96 bg-cyan-400/20 dark:bg-cyan-600/10 rounded-full blur-[40px] md:blur-[100px] opacity-60 pointer-events-none gpu-accel" style={{ transform: 'translateZ(0)' }}></div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
         <motion.div
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, ease: "easeOut" }}
-          className="will-change-transform"
+          style={{ transform: 'translateZ(0)' }}
         >
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white dark:bg-slate-900 border border-blue-200 dark:border-slate-800 mb-6 md:mb-8 shadow-sm">
             <Zap size={16} className="text-blue-600 dark:text-blue-400 fill-blue-600 dark:fill-blue-400" />

@@ -78,9 +78,9 @@ const Navbar: React.FC = () => {
 
   return (
     <nav
-      className={`fixed w-full z-50 transition-all duration-300 will-change-transform ${scrolled || !isHome || isOpen
-          ? 'bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-blue-100 dark:border-slate-800 py-3 shadow-sm'
-          : 'bg-transparent py-5'
+      className={`fixed w-full z-50 transition-all duration-300 ${scrolled || !isHome || isOpen
+        ? 'bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-blue-100 dark:border-slate-800 py-3 shadow-sm'
+        : 'bg-transparent py-5'
         }`}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

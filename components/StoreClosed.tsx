@@ -46,46 +46,82 @@ const StoreClosed: React.FC<StoreClosedProps> = ({
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-purple-900 flex items-center justify-center p-4 relative overflow-hidden font-sans">
-            {/* Animated Background Elements */}
+            {/* Animated Background Elements - Optimized for Mobile */}
             <div className="absolute inset-0 overflow-hidden pointer-events-none">
                 <motion.div
-                    className="absolute top-[-10%] left-[-10%] w-[40rem] h-[40rem] bg-indigo-600/20 rounded-full blur-[100px] will-change-transform"
-                    animate={{
-                        scale: [1, 1.2, 1],
-                        opacity: [0.3, 0.5, 0.3],
+                    className="absolute top-[-10%] left-[-10%] w-[40rem] h-[40rem] bg-indigo-600/20 rounded-full md:blur-[100px] blur-[60px]"
+                    style={{
+                        transform: 'translateZ(0)',
+                        backfaceVisibility: 'hidden',
+                        perspective: 1000
                     }}
-                    transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
+                    animate={{
+                        scale: [1, 1.15, 1],
+                        opacity: [0.3, 0.4, 0.3],
+                    }}
+                    transition={{
+                        duration: 8,
+                        repeat: Infinity,
+                        ease: [0.4, 0, 0.6, 1],
+                        repeatType: "reverse"
+                    }}
                 />
                 <motion.div
-                    className="absolute bottom-[-10%] right-[-10%] w-[40rem] h-[40rem] bg-purple-600/20 rounded-full blur-[100px] will-change-transform"
-                    animate={{
-                        scale: [1.2, 1, 1.2],
-                        opacity: [0.5, 0.3, 0.5],
+                    className="absolute bottom-[-10%] right-[-10%] w-[40rem] h-[40rem] bg-purple-600/20 rounded-full md:blur-[100px] blur-[60px]"
+                    style={{
+                        transform: 'translateZ(0)',
+                        backfaceVisibility: 'hidden',
+                        perspective: 1000
                     }}
-                    transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
+                    animate={{
+                        scale: [1.15, 1, 1.15],
+                        opacity: [0.4, 0.3, 0.4],
+                    }}
+                    transition={{
+                        duration: 9,
+                        repeat: Infinity,
+                        ease: [0.4, 0, 0.6, 1],
+                        repeatType: "reverse"
+                    }}
                 />
                 <div
                     className="absolute inset-0 opacity-[0.03]"
                     style={{
                         backgroundImage: `linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)`,
-                        backgroundSize: '40px 40px'
+                        backgroundSize: '40px 40px',
+                        transform: 'translateZ(0)'
                     }}
                 ></div>
             </div>
 
             <motion.div
                 className="max-w-md w-full relative z-10"
-                initial={{ opacity: 0, scale: 0.95 }}
+                initial={{ opacity: 0, scale: 0.98 }}
                 animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.8, ease: "easeOut" }}
+                transition={{
+                    duration: 0.6,
+                    ease: [0.4, 0, 0.2, 1]
+                }}
+                style={{
+                    transform: 'translateZ(0)',
+                    backfaceVisibility: 'hidden'
+                }}
             >
                 {/* Brand Header */}
                 <div className="text-center mb-8">
                     <motion.div
                         className="mx-auto w-24 h-24 rounded-full p-1 bg-gradient-to-tr from-blue-500 to-purple-500 shadow-2xl relative mb-4"
-                        initial={{ y: -20, opacity: 0 }}
+                        initial={{ y: -15, opacity: 0 }}
                         animate={{ y: 0, opacity: 1 }}
-                        transition={{ delay: 0.2 }}
+                        transition={{
+                            delay: 0.15,
+                            duration: 0.5,
+                            ease: [0.4, 0, 0.2, 1]
+                        }}
+                        style={{
+                            transform: 'translateZ(0)',
+                            backfaceVisibility: 'hidden'
+                        }}
                     >
                         <div className="w-full h-full rounded-full bg-slate-900 flex items-center justify-center overflow-hidden border-4 border-slate-900">
                             {logoUrl ? (
@@ -101,7 +137,11 @@ const StoreClosed: React.FC<StoreClosedProps> = ({
                             className="text-2xl font-bold text-white tracking-wide"
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
-                            transition={{ delay: 0.3 }}
+                            transition={{
+                                delay: 0.25,
+                                duration: 0.5,
+                                ease: [0.4, 0, 0.2, 1]
+                            }}
                         >
                             {brandName}
                         </motion.h2>
@@ -109,9 +149,9 @@ const StoreClosed: React.FC<StoreClosedProps> = ({
                 </div>
 
                 {/* Main Card */}
-                <div className="bg-white/5 backdrop-blur-2xl border border-white/10 rounded-3xl p-8 shadow-2xl relative overflow-hidden group">
+                <div className="bg-white/5 md:backdrop-blur-2xl backdrop-blur-xl border border-white/10 rounded-3xl p-8 shadow-2xl relative overflow-hidden group">
                     {/* Glass Shine Effect */}
-                    <div className="absolute inset-0 bg-gradient-to-tr from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
+                    <div className="absolute inset-0 bg-gradient-to-tr from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
 
                     <div className="text-center mb-8">
                         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-red-500/10 border border-red-500/20 text-red-400 text-sm font-medium mb-4">
